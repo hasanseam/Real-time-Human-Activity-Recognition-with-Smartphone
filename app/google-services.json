@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "984415149740",
+    "project_id": "realtimehar",
+    "storage_bucket": "realtimehar.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:984415149740:android:ba9189280bc23de745c909",
+        "android_client_info": {
+          "package_name": "com.example.realtimehar"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "984415149740-36o84d7tq6udjblffpk93738qff282ff.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyChfih5rNZhGKC8viGnqkW1V_Belza-BIA"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "984415149740-36o84d7tq6udjblffpk93738qff282ff.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,13 @@
+<resources>
+    <string name="app_name">RealTimeHar</string>
+    <string name="select_sensors_button">Select Sensors</string>
+    <string name="start_button">Start</string>
+    <string name="activity_prompt">Select an activity</string>
+    <string name="start_recording_button">Start Record</string>
+    <string-array name="activity_options">
+        <item>Walking</item>
+        <item>Sitting</item>
+        <item>Running</item>
+    </string-array>
+
+</resources>
