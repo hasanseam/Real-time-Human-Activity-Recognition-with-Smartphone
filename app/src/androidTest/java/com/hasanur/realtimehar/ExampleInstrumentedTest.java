@@ -1,4 +1,4 @@
-package com.example.realtimehar;
+package com.hasanur.realtimehar;
 
 import android.content.Context;
 

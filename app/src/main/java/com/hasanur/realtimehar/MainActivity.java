@@ -1,4 +1,4 @@
-package com.example.realtimehar;
+package com.hasanur.realtimehar;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
