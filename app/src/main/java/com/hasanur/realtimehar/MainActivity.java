@@ -26,6 +26,7 @@ public class MainActivity extends AppCompatActivity {
         configureFragment = new ConfigureFragment();
         profileFragment = new ProfileFragment();
 
+        // set listener for bottom navigation
         binding.bottomNavigationView.setOnItemSelectedListener(
                 item -> {
                     Fragment replacedFragment;
@@ -52,12 +53,14 @@ public class MainActivity extends AppCompatActivity {
         replaceFragment(getSelectedFragment());
     }
 
+    //onSaveInstanceState function is used to persistent the state after rotation
     @Override
     protected void onSaveInstanceState(@NonNull Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putInt(SELECTED_ITEM_ID, selectedItem);
     }
 
+    //replaceFragment function used to change the fragmentation based on user action
     private void replaceFragment(Fragment fragment){
         FragmentManager fragmentManager = getSupportFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
@@ -66,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
         fragmentTransaction.commit();
     }
 
+    // getSelectedFragment function used to get the current active fragment which is saved into selectedItem
     private Fragment getSelectedFragment() {
         switch (selectedItem) {
             case R.id.data_acquisition:

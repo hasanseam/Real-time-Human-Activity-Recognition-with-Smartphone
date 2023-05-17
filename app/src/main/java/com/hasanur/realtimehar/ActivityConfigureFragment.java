@@ -4,6 +4,7 @@ import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
 
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -52,12 +53,20 @@ public class ActivityConfigureFragment extends Fragment {
             Chip chip = new Chip(getContext());
             chip.setText(text);
             chip.setCloseIconVisible(true);
+            chip.setCheckable(true);
+            //chip.setChipIconVisible(true);
+
 
             chip.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-
+                    for (int i = 0; i < chipGroup.getChildCount(); i++) {
+                        Chip childChip = (Chip) chipGroup.getChildAt(i);
+                        childChip.setSelected(false);
+                    }
+                    Log.d("BALSAL", "Bal amar");
                     chip.setSelected(!chip.isSelected());
+
                 }
             });
 
