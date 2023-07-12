@@ -13,14 +13,14 @@ import java.util.ArrayList;
 
 public class ConfigureViewPageAdapter extends FragmentStateAdapter {
 
-
-
     private ArrayList<Fragment> fragmentArrayList = new ArrayList<Fragment>();
 
     public ConfigureViewPageAdapter(@NonNull FragmentActivity fragmentActivity) {
         super(fragmentActivity);
         add(new ActivityConfigureFragment());
         add(new SensorConfigureFragment());
+
+
     }
 
     @NonNull

@@ -11,6 +11,7 @@ import android.os.Bundle;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.util.Log;
 import android.util.SparseBooleanArray;
@@ -23,6 +24,8 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import com.hasanur.realtimehar.ViewModel.DataAcquisitionViewModel;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -34,6 +37,8 @@ public class DataAcquisitionFragment extends Fragment {
     private TextView sensorDataTextView;
     private StringBuilder sensorDataStringBuilder;
     private Button startRecordingButton;
+    private DataAcquisitionViewModel dataAcquisitionViewModel;
+
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -41,20 +46,24 @@ public class DataAcquisitionFragment extends Fragment {
         View fragmentView = inflater.inflate(R.layout.fragment_data_acquisition, container, false);
 
         sensorManager = (SensorManager) getActivity().getSystemService(Context.SENSOR_SERVICE);
-        sharedPreferences = requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
+       // sharedPreferences = requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
         sensorDataTextView = fragmentView.findViewById(R.id.sensor_data_text_view1);
         sensorDataStringBuilder = new StringBuilder();
 
+         dataAcquisitionViewModel = new ViewModelProvider(requireActivity()).get(DataAcquisitionViewModel.class);
+
         Button selectSensorsButton = fragmentView.findViewById(R.id.select_sensors_button1);
 
-        selectSensorsButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                openSensorCheckModal();
-            }
-        });
-
         startRecordingButton = fragmentView.findViewById(R.id.start_recording_button1);
+
+        Log.d("DataACQ", "onCreateView: "+dataAcquisitionViewModel.getListening());
+        if(dataAcquisitionViewModel.getListening()){
+            startListening();
+            startRecordingButton.setText("Stop");
+        }else {
+            stopListening();
+        }
+
         startRecordingButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -68,6 +77,16 @@ public class DataAcquisitionFragment extends Fragment {
         });
         // Inflate the layout for this fragment
         return fragmentView;
+    }
+
+    private void startListening() {
+        dataAcquisitionViewModel.setListening(true);
+        startRecordingButton.setText("Stop");
+    }
+
+    private void stopListening() {
+        dataAcquisitionViewModel.setListening(false);
+        startRecordingButton.setText("Start");
     }
 
     private SensorEventListener sensorEventListener = new SensorEventListener() {
@@ -108,98 +127,6 @@ public class DataAcquisitionFragment extends Fragment {
             // Handle accuracy changes here
         }
     };
-
-    private void stopListening(){
-        sensorManager.unregisterListener(sensorEventListener);
-        startRecordingButton.setText("Start");
-    }
-
-    private void startListening(){
-        {
-            startRecordingButton.setText("Stop");
-            // Get the selected sensors
-            String selectedSensors = sharedPreferences.getString("MyPrefs", "");
-            String[] selectedSensorArray = selectedSensors.split(",");
-
-            // Register sensor listeners for the selected sensors
-            for (String sensorName : selectedSensorArray) {
-                Log.d("HELL", sensorName);
-                Sensor sensor = sensorManager.getDefaultSensor(getSensorType(sensorName));
-                if (sensor != null) {
-                    sensorManager.registerListener(sensorEventListener, sensor, SensorManager.SENSOR_DELAY_NORMAL);
-                }
-            }
-
-            // Start recording
-            boolean isRecording = true;
-            Toast.makeText(requireContext(), "Recording started", Toast.LENGTH_SHORT).show();
-        }
-    }
-
-    private int getSensorType(String sensorName) {
-        switch (sensorName) {
-            case "Accelerometer":
-                return Sensor.TYPE_ACCELEROMETER;
-            case "Magnetometer":
-                return Sensor.TYPE_MAGNETIC_FIELD;
-            case "Gyroscope":
-                return Sensor.TYPE_GYROSCOPE;
-            default:
-                return -1;
-        }
-    }
-
-    private void openSensorCheckModal() {
-        // Create a list of sensors
-        String[] sensors = {"Accelerometer", "Magnetometer", "Gyroscope"};
-
-        // Create an ArrayAdapter to populate the ListView with the sensors
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(requireContext(), android.R.layout.simple_list_item_multiple_choice, sensors);
-
-        // Create the ListView
-        ListView listView = new ListView(requireContext());
-        listView.setChoiceMode(ListView.CHOICE_MODE_MULTIPLE);
-        listView.setAdapter(adapter);
-
-        // Check the previously selected sensors
-        String selectedSensors = sharedPreferences.getString("MyPrefs", "");
-        String[] selectedSensorArray = selectedSensors.split(",");
-        for (int i = 0; i < selectedSensorArray.length; i++) {
-            int position = Arrays.asList(sensors).indexOf(selectedSensorArray[i]);
-            if (position != -1) {
-                listView.setItemChecked(position, true);
-            }
-        }
-
-        // Create the AlertDialog
-        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
-        builder.setTitle("Select Sensors");
-        builder.setView(listView);
-        builder.setPositiveButton("Select", new DialogInterface.OnClickListener() {
-            @Override
-            public void onClick(DialogInterface dialog, int which) {
-                SparseBooleanArray selectedSensors = listView.getCheckedItemPositions();
-
-                // Save the selected sensors to SharedPreferences
-                StringBuilder selectedSensorNames = new StringBuilder();
-                for (int i = 0; i < selectedSensors.size(); i++) {
-                    int position = selectedSensors.keyAt(i);
-                    if (selectedSensors.get(position)) {
-                        selectedSensorNames.append(sensors[position]).append(",");
-                    }
-                }
-                String selectedSensorNamesString = selectedSensorNames.toString();
-                if (!selectedSensorNamesString.isEmpty()) {
-                    selectedSensorNamesString = selectedSensorNamesString.substring(0, selectedSensorNamesString.length() - 1);
-                }
-                sharedPreferences.edit().putString("MyPrefs", selectedSensorNamesString).apply();
-            }
-        });
-        builder.setNegativeButton("Cancel", null);
-        AlertDialog dialog = builder.create();
-        dialog.show();
-    }
-
 
     @Override
     public void onResume() {
