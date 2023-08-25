@@ -3,6 +3,7 @@ package com.hasanur.realtimehar;
 import android.os.Bundle;
 
 import androidx.fragment.app.Fragment;
+import androidx.lifecycle.ViewModelProvider;
 
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -13,6 +14,10 @@ import android.widget.EditText;
 
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
+import com.hasanur.realtimehar.ViewModel.ActivityConfigureViewModel;
+import com.hasanur.realtimehar.ViewModel.DataAcquisitionViewModel;
+
+import java.util.ArrayList;
 
 
 public class ActivityConfigureFragment extends Fragment {
@@ -20,6 +25,8 @@ public class ActivityConfigureFragment extends Fragment {
     private ChipGroup chipGroup;
     private EditText chipEditText;
     private Button addChipButton;
+
+    private ActivityConfigureViewModel activityConfigureViewModel;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -30,21 +37,28 @@ public class ActivityConfigureFragment extends Fragment {
         chipEditText = fragmentView.findViewById(R.id.chip_edit_text);
         addChipButton = fragmentView.findViewById(R.id.add_chip_button);
 
+        activityConfigureViewModel = new ViewModelProvider(requireActivity()).get(ActivityConfigureViewModel.class);
+
         // Set click listener for the add chip button
         addChipButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                addChip();
+                // Get the text from the EditText
+                String text = chipEditText.getText().toString().trim();
+                activityConfigureViewModel.addAcitivity(text);
+                addChip(text,false);
             }
         });
+        ArrayList<String> activities = activityConfigureViewModel.getActivities();
+        for(int i = 0; i<activityConfigureViewModel.getActivities().size(); i++){
+              addChip(activities.get(i),i==activityConfigureViewModel.getSelectedPosition());
+        }
 
         // Inflate the layout for this fragment
         return fragmentView;
     }
 
-    private void addChip() {
-        // Get the text from the EditText
-        String text = chipEditText.getText().toString().trim();
+    private void addChip(String text, boolean isSelected ) {
 
         // Check if text is empty
         if (!text.isEmpty()) {
@@ -55,25 +69,26 @@ public class ActivityConfigureFragment extends Fragment {
             chip.setCloseIconVisible(true);
             chip.setCheckable(true);
             //chip.setChipIconVisible(true);
-
+            chip.setChecked(isSelected);
 
             chip.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    for (int i = 0; i < chipGroup.getChildCount(); i++) {
-                        Chip childChip = (Chip) chipGroup.getChildAt(i);
-                        childChip.setSelected(false);
+                    int position;
+                    if(chip.isChecked() ){
+                       position =  chipGroup.indexOfChild(v);
+                    }else{
+                        position = -1;
                     }
-                    Log.d("BALSAL", "Bal amar");
-                    chip.setSelected(!chip.isSelected());
-
+                    activityConfigureViewModel.setSelectedPosition(position);
                 }
             });
-
             // Set click listener for the close icon of the chip
             chip.setOnCloseIconClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    int position = chipGroup.indexOfChild(v);
+                    activityConfigureViewModel.removeActivity(position);
                     chipGroup.removeView(chip);
                 }
             });

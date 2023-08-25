@@ -1,47 +1,48 @@
 <?xml version="1.0" encoding="utf-8"?>
-
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:orientation="vertical"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     tools:context=".MainActivity">
 
-    <TextView
-        android:id="@+id/sensor_data_text_view1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginBottom="100dp"
-        android:text="Sensor Data"
-        android:textSize="20sp"
-        app:layout_constraintBottom_toTopOf="@+id/chartAcc"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.463"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="1.0" />
-
-    <com.github.mikephil.charting.charts.LineChart
-        android:id="@+id/chartAcc"
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="250dp"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_height="wrap_content">
+        <LinearLayout
+            android:id="@+id/sensor_list_layout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:smoothScrollbar="true"
+            android:paddingBottom="50dp"
+            android:orientation="vertical">
+            <TextView
+                android:id="@+id/sensor_data_text_view1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="100dp"
+                android:text="Sensor Data"
+                android:textSize="20sp"
+                android:layout_gravity="center_horizontal"
+                />
+            <LinearLayout
+                android:id="@+id/chartContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical">
 
-    <Button
-        android:id="@+id/start_recording_button1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="@string/start_button"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.498"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/chartAcc"
-        app:layout_constraintVertical_bias="0.476" />
+            </LinearLayout>
 
+            <Button
+                android:id="@+id/start_recording_button1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/start_button"
+                android:layout_gravity="center_horizontal"
+                />
 
-</androidx.constraintlayout.widget.ConstraintLayout>
-
+        </LinearLayout>
+    </ScrollView>
+</LinearLayout>
