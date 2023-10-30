@@ -385,6 +385,7 @@ public class DataAcquisitionFragment extends Fragment {
     private void initFileWriter() {
         File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
 
+        //customized file name
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
 
         // Construct the file name with the timestamp
