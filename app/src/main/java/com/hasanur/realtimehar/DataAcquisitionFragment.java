@@ -49,48 +49,47 @@ import com.hasanur.realtimehar.ViewModel.SensorConfigureViewModel;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class DataAcquisitionFragment extends Fragment {
     private SensorManager sensorManager;
     private SharedPreferences sharedPreferences;
-
     private List<Sensor> sensorList;
     private TextView sensorDataTextView;
     private StringBuilder sensorDataStringBuilder;
     private Button startRecordingButton;
-
     private LinearLayout chartContainer;
-
     private List<LineChart> chartList = new ArrayList<>();
-
     private List<ILineDataSet> sensorDataSets = new ArrayList<>();
-
     private List <SensorEventListener> sensorEventListeners = new ArrayList<>();
     private DataAcquisitionViewModel dataAcquisitionViewModel;
-
     private ActivityConfigureViewModel activityConfigureViewModel;
-
     private SensorConfigureViewModel sensorConfigureViewModel;
-
    private Thread thread;
    private boolean plotData = true;
-
    private static final int PERMISSION_REQUEST_CODE = 1;
    private FileWriter writer;
 
-
+    private FileWriter csvWriter;
+    private File csvFile;
+    private static final String FILE_NAME = "sensor_data1.csv";
     @SuppressLint("MissingInflatedId")
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        // Inflate the layout for this fragment
         View fragmentView = inflater.inflate(R.layout.fragment_data_acquisition, container, false);
 
+        // request permission for write
         requestPermission();
+
+        //initialization and view setup
         sensorManager = (SensorManager) getActivity().getSystemService(Context.SENSOR_SERVICE);
-       // sharedPreferences = requireContext().getSharedPreferences("MyPrefs", Context.MODE_PRIVATE);
         sensorDataTextView = fragmentView.findViewById(R.id.sensor_data_text_view1);
         chartContainer = fragmentView.findViewById(R.id.chartContainer);// for insert the chart dynamically
 
@@ -100,8 +99,8 @@ public class DataAcquisitionFragment extends Fragment {
         activityConfigureViewModel = new ViewModelProvider(requireActivity()).get(ActivityConfigureViewModel.class);
         sensorConfigureViewModel = new ViewModelProvider(requireActivity()).get(SensorConfigureViewModel.class);
 
-
-        feedMultiple();// thread has been used for live input
+        // thread has been used for live input
+        feedMultiple();
 
         startRecordingButton = fragmentView.findViewById(R.id.start_recording_button1);
 
@@ -113,8 +112,6 @@ public class DataAcquisitionFragment extends Fragment {
         }else {
             stopListening();
         }
-
-        getStorageDir();
 
         startRecordingButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -246,6 +243,8 @@ public class DataAcquisitionFragment extends Fragment {
     }
 
     private void startListening() {
+
+        initFileWriter();
         //checking the sensor configuration
         List<Sensor> checkedSensors = sensorConfigureViewModel.getCheckedSensors();
 
@@ -289,21 +288,14 @@ public class DataAcquisitionFragment extends Fragment {
         for(SensorEventListener sensorEventListener1:sensorEventListeners){
             sensorManager.unregisterListener(sensorEventListener1);
         }
-
-        if (writer != null) {
-            try {
-                writer.close();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-            writer = null;
-        }
+        closeFileWriter();
     }
     private SensorEventListener createSensorEventListener() {
         return new SensorEventListener() {
             @Override
             public void onSensorChanged(SensorEvent event) {
                 plotDataForCharts(event,event.sensor);
+                writeSensorDataToFile(event);
             }
 
             @Override
@@ -370,40 +362,68 @@ public class DataAcquisitionFragment extends Fragment {
         }
     }
 
-
-
-
-
-    private String getStorageDir() {
-        File dir = new File(getActivity().getExternalFilesDir(null), "RealtimeHarData");
-        if (!dir.exists()) {
-            boolean dirCreated = dir.mkdir();
-            Log.d("DirectoryCreated", "Directory created: " + dirCreated);
-        }
-        return dir.getAbsolutePath();
+    // Method called when the fragment is resumed
+    @Override
+    public void onResume() {
+        super.onResume();
+        //other task in Resume()
     }
 
-    private void writeCsvFile(String data) {
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+
+    }
+
+    // Request permission for writing to external storage
+    private void requestPermission() {
+        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(requireActivity(), new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_CODE);
+        }
+    }
+    // Initialize the FileWriter and create the file for writing
+    private void initFileWriter() {
+        File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+
+        String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+
+        // Construct the file name with the timestamp
+        String fileName = "activitydata" + timestamp + ".csv";
+
+        csvFile = new File(dir, fileName);
+
         try {
-            if (writer == null) {
-                Log.d("OW",getStorageDir());
-                writer = new FileWriter(new File(getStorageDir(), "sensor_data_" + System.currentTimeMillis() + ".csv"));
+            // FileWriter in append mode to keep adding data
+            csvWriter = new FileWriter(csvFile, true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    private void writeSensorDataToFile(SensorEvent event) {
+        try {
+            StringBuilder sensorDataString = new StringBuilder();
+            for (float value : event.values) {
+                sensorDataString.append(value).append(",");
             }
-            writer.write(data);
+            sensorDataString.append(event.sensor.getName()).append(",");
+            sensorDataString.append(activityConfigureViewModel.getSelectedActivities());
+            sensorDataString.append("\n");
+            csvWriter.write(sensorDataString.toString());
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
 
-
-    @Override
-    public void onResume() {
-        super.onResume();
-    }
-
-    private void requestPermission() {
-        if (ContextCompat.checkSelfPermission(requireContext(), Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            ActivityCompat.requestPermissions(requireActivity(), new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, PERMISSION_REQUEST_CODE);
+    //close the file writer
+    //the function has been help to save csv
+    private void closeFileWriter() {
+        try {
+            if (csvWriter != null) {
+                csvWriter.close();
+                Toast.makeText(getActivity(), "Sensor data saved to " + csvFile.getAbsolutePath(), Toast.LENGTH_SHORT).show();
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
