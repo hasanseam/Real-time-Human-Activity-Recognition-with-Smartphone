@@ -46,7 +46,9 @@ import com.hasanur.realtimehar.ViewModel.DataAcquisitionViewModel;
 import com.hasanur.realtimehar.ViewModel.SensorConfigureViewModel;
 
 
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.SimpleDateFormat;
@@ -383,7 +385,13 @@ public class DataAcquisitionFragment extends Fragment {
     }
     // Initialize the FileWriter and create the file for writing
     private void initFileWriter() {
-        File dir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+
+        File dir = new File(requireContext().getExternalFilesDir(null), "RealtimeHAR");
+
+        // Make sure the directory exists, if not, create it
+        if (!dir.exists()) {
+            dir.mkdirs(); // This will create the directory if it doesn't exist
+        }
 
         //customized file name
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
@@ -422,9 +430,37 @@ public class DataAcquisitionFragment extends Fragment {
             if (csvWriter != null) {
                 csvWriter.close();
                 Toast.makeText(getActivity(), "Sensor data saved to " + csvFile.getAbsolutePath(), Toast.LENGTH_SHORT).show();
+                Log.d("path",csvFile.getAbsolutePath());
+                readSpecificCSVFileFromExternalStorage(csvFile.getName());
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
+    private void readSpecificCSVFileFromExternalStorage(String fileName) {
+        // Get the external storage directory for the "RealtimeHAR" folder
+        File directory = new File(requireContext().getExternalFilesDir(null), "RealtimeHAR");
+
+        // Construct the file path
+        File fileToRead = new File(directory, fileName);
+
+        if (fileToRead.exists() && fileToRead.isFile() && fileToRead.getName().endsWith(".csv")) {
+            try {
+                BufferedReader bufferedReader = new BufferedReader(new FileReader(fileToRead));
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    // Process each line (for example, print it)
+                    System.out.println(line);
+                    Log.d("Filedata",line);
+                }
+                bufferedReader.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        } else {
+            System.out.println("File not found or not a CSV file");
+        }
+    }
+
 }

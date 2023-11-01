@@ -6,5 +6,10 @@ android:layout_height="match_parent"
 android:background="@color/realtimehar_teal_200"
 tools:context=".ProfileFragment">
 
+    <androidx.recyclerview.widget.RecyclerView
+        android:id="@+id/recyclerView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
