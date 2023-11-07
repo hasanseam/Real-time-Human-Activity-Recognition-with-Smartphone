@@ -131,7 +131,6 @@ public class DataAcquisitionFragment extends Fragment {
     }
 
     private void createChart(String chartTitle) {
-
         LineChart lineChart = configureChart();
         Description description = new Description();
         description.setText(chartTitle);
@@ -231,7 +230,6 @@ public class DataAcquisitionFragment extends Fragment {
 
 
     private LineDataSet createSet(int color) {
-
         LineDataSet set = new LineDataSet(null, "Dynamic Data");
         set.setAxisDependency(YAxis.AxisDependency.LEFT);
         set.setLineWidth(3f);
@@ -411,6 +409,8 @@ public class DataAcquisitionFragment extends Fragment {
     private void writeSensorDataToFile(SensorEvent event) {
         try {
             StringBuilder sensorDataString = new StringBuilder();
+            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+            sensorDataString.append(timestamp).append(",");
             for (float value : event.values) {
                 sensorDataString.append(value).append(",");
             }
@@ -431,7 +431,7 @@ public class DataAcquisitionFragment extends Fragment {
                 csvWriter.close();
                 Toast.makeText(getActivity(), "Sensor data saved to " + csvFile.getAbsolutePath(), Toast.LENGTH_SHORT).show();
                 Log.d("path",csvFile.getAbsolutePath());
-                readSpecificCSVFileFromExternalStorage(csvFile.getName());
+               // readSpecificCSVFileFromExternalStorage(csvFile.getName());
             }
         } catch (IOException e) {
             e.printStackTrace();

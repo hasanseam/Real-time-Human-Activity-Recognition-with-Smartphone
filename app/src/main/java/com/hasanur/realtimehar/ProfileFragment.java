@@ -7,12 +7,15 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.hasanur.realtimehar.Adapter.FileAdapter;
 import com.hasanur.realtimehar.Interface.FileItemClickListener;
 import com.hasanur.realtimehar.Model.FileDetails;
+import com.hasanur.realtimehar.ViewModel.DataVisualizationViewModel;
 
 import java.io.File;
 import java.text.SimpleDateFormat;
@@ -24,10 +27,14 @@ import java.util.Locale;
 public class ProfileFragment extends Fragment {
     RecyclerView recyclerView;
 
+    private DataVisualizationViewModel dataVisualizationViewModel;
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         View fragmentView = inflater.inflate(R.layout.fragment_profile, container, false);
+
+        dataVisualizationViewModel = new ViewModelProvider(requireActivity()).get(DataVisualizationViewModel.class);
 
         recyclerView = fragmentView.findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
@@ -62,12 +69,13 @@ public class ProfileFragment extends Fragment {
 
     private void openAnotherFragment(File file) {
         Log.d("Name",file.getName());
-        FileVisualizationFragment fileVisualizationFragment = FileVisualizationFragment.newInstance(file);
+        dataVisualizationViewModel.setFileName(file.getName());
+        DataVisualizationFragment dataVisualizationFragment = new DataVisualizationFragment();
 
         // Navigate to the FileVisualizationFragment
         requireActivity().getSupportFragmentManager()
                 .beginTransaction()
-                .replace(R.id.frame_layout_main_activity, fileVisualizationFragment) // R.id.fragment_container is the container in your activity layout
+                .replace(R.id.frame_layout_main_activity, dataVisualizationFragment) // R.id.fragment_container is the container in your activity layout
                 .addToBackStack(null) // This adds the transaction to the back stack
                 .commit();
     }
