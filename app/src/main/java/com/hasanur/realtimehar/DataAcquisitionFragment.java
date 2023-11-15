@@ -402,6 +402,7 @@ public class DataAcquisitionFragment extends Fragment {
         try {
             // FileWriter in append mode to keep adding data
             csvWriter = new FileWriter(csvFile, true);
+
         } catch (IOException e) {
             e.printStackTrace();
         }

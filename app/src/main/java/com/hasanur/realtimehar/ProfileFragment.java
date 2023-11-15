@@ -1,6 +1,9 @@
 package com.hasanur.realtimehar;
 
 import android.os.Bundle;
+
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 
 import android.util.Log;
@@ -12,6 +15,7 @@ import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.navigation.NavigationView;
 import com.hasanur.realtimehar.Adapter.FileAdapter;
 import com.hasanur.realtimehar.Interface.FileItemClickListener;
 import com.hasanur.realtimehar.Model.FileDetails;
@@ -65,6 +69,10 @@ public class ProfileFragment extends Fragment {
 
         recyclerView.setAdapter(fileAdapter);
         return fragmentView;
+    }
+
+    private void openFileFragment() {
+        Log.d("Kichuna", "Seam click korse");
     }
 
     private void openAnotherFragment(File file) {
