@@ -24,6 +24,8 @@ public class DataAcquisitionViewModel extends ViewModel {
         return chartList;
     }
 
+    public void resetChartList(){this.chartList.clear();}
+
     public void setListening(boolean value){
         isListening = value;
     }

@@ -55,10 +55,15 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class DataAcquisitionFragment extends Fragment {
+
+    private Map<Sensor, float[]> latestSensorReadings = new HashMap<>();
+    private boolean isHeaderWritten;
     private SensorManager sensorManager;
     private SharedPreferences sharedPreferences;
     private List<Sensor> sensorList;
@@ -245,28 +250,34 @@ public class DataAcquisitionFragment extends Fragment {
     private void startListening() {
 
         initFileWriter();
+
+        isHeaderWritten = false;
+
         //checking the sensor configuration
         List<Sensor> checkedSensors = sensorConfigureViewModel.getCheckedSensors();
 
-        List<LineChart> lineCharts = dataAcquisitionViewModel.getChartList();
+       // List<LineChart> lineCharts = dataAcquisitionViewModel.getChartList();
 
         chartContainer.removeAllViews();
 
-        for(LineChart chart: lineCharts){
+        //wrong logic To Do
+
+       /* for(LineChart chart: lineCharts){
             ViewGroup parentView = (ViewGroup) chart.getParent();
             if (parentView != null) {
                 parentView.removeView(chart);
             }
             chartContainer.addView(chart);
-        }
+        }*/
 
-        Log.d("ViewModelCheck",""+lineCharts.size());
+        //Log.d("ViewModelCheck",""+lineCharts.size());
 
         for(Sensor sensor:checkedSensors){
 
-            if(checkedSensors.size()>lineCharts.size()){
+           /* if(checkedSensors.size()>lineCharts.size()){
                 createChart(sensor.getName());
-            }
+            }*/
+            createChart(sensor.getName());
             SensorEventListener sensorEventListener1 = createSensorEventListener();
             sensorEventListeners.add(sensorEventListener1);
             sensorManager.registerListener(sensorEventListener1, sensor, SensorManager.SENSOR_DELAY_NORMAL);
@@ -288,14 +299,31 @@ public class DataAcquisitionFragment extends Fragment {
         for(SensorEventListener sensorEventListener1:sensorEventListeners){
             sensorManager.unregisterListener(sensorEventListener1);
         }
+        chartContainer.removeAllViews();
+       // chartContainer.postInvalidate();
+        dataAcquisitionViewModel.resetChartList();
         closeFileWriter();
     }
     private SensorEventListener createSensorEventListener() {
         return new SensorEventListener() {
             @Override
             public void onSensorChanged(SensorEvent event) {
-                plotDataForCharts(event,event.sensor);
-                writeSensorDataToFile(event);
+                latestSensorReadings.put(event.sensor, event.values);
+                boolean allDataAvailable = true;
+                for (Sensor sensor : sensorConfigureViewModel.getCheckedSensors()) {
+                    if (!latestSensorReadings.containsKey(sensor)) {
+                        allDataAvailable = false;
+                        break;
+                    }
+                }
+
+                // If data is available for all sensors, write to the file
+                if (allDataAvailable) {
+                    writeSensorDataToFile();
+                }
+                //old code
+               plotDataForCharts(event,event.sensor);
+               // writeSensorDataToFile(event);
             }
 
             @Override
@@ -303,6 +331,57 @@ public class DataAcquisitionFragment extends Fragment {
                 // Handle accuracy changes here
             }
         };
+    }
+
+    private void writeSensorDataToFile() {
+        try {
+            StringBuilder sensorDataString = new StringBuilder();
+
+            if(!isHeaderWritten){
+                sensorDataString.append("Timestamp,");
+
+                // Append headers for each registered sensor
+                for (Sensor sensor : sensorConfigureViewModel.getCheckedSensors()) {
+                    String[] channels = {"_x", "_y", "_z","_a","_b"}; // Define the channels
+
+                    float[] values = latestSensorReadings.get(sensor);
+
+                    for (int i = 0; i < values.length && i < channels.length; i++) {
+                        sensorDataString.append(sensor.getName()).append(channels[i]).append(",");
+                    }
+
+                }
+
+                // Append selected activities header
+                sensorDataString.append("Activities\n");
+
+                // Write the sensor data string to the CSV file
+                csvWriter.write(sensorDataString.toString());
+
+                // Append data from all registered sensors
+                sensorDataString.setLength(0);
+                isHeaderWritten = true;
+            }
+
+            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
+            sensorDataString.append(timestamp).append(",");
+
+            // Append data from all registered sensors
+            for (Sensor sensor : sensorConfigureViewModel.getCheckedSensors()) {
+                float[] values = latestSensorReadings.get(sensor);
+                for (float value : values) {
+                    sensorDataString.append(value).append(",");
+                }
+            }
+
+            // Append selected activities
+            sensorDataString.append(activityConfigureViewModel.getSelectedActivities()).append("\n");
+
+            // Write the sensor data string to the CSV file
+            csvWriter.write(sensorDataString.toString());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     private void plotDataForCharts(SensorEvent event,Sensor sensor) {
@@ -427,6 +506,7 @@ public class DataAcquisitionFragment extends Fragment {
     //close the file writer
     //the function has been help to save csv
     private void closeFileWriter() {
+
         try {
             if (csvWriter != null) {
                 csvWriter.close();
