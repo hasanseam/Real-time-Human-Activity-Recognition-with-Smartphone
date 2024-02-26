@@ -113,6 +113,8 @@ public class DataAcquisitionFragment extends Fragment {
 
         Log.d("DataACQ", "onCreateView: "+dataAcquisitionViewModel.getListening());
 
+        //TODO: Change the logic
+        //TODO: Resume function need to be addeed
         if(dataAcquisitionViewModel.getListening()){
             startListening();
             startRecordingButton.setText("Stop");
@@ -249,46 +251,36 @@ public class DataAcquisitionFragment extends Fragment {
 
     private void startListening() {
 
-        initFileWriter();
-
-        isHeaderWritten = false;
-
-        //checking the sensor configuration
         List<Sensor> checkedSensors = sensorConfigureViewModel.getCheckedSensors();
+        Sensor s = (checkedSensors.size()>0) ? checkedSensors.get(0):null;
+        if (s != null && activityConfigureViewModel.getSelectedActivities()!=null) {
+            // file initialize
+            initFileWriter();
 
-       // List<LineChart> lineCharts = dataAcquisitionViewModel.getChartList();
+            isHeaderWritten = false;
 
-        chartContainer.removeAllViews();
+            chartContainer.removeAllViews();
 
-        //wrong logic To Do
-
-       /* for(LineChart chart: lineCharts){
-            ViewGroup parentView = (ViewGroup) chart.getParent();
-            if (parentView != null) {
-                parentView.removeView(chart);
-            }
-            chartContainer.addView(chart);
-        }*/
-
-        //Log.d("ViewModelCheck",""+lineCharts.size());
-
-        for(Sensor sensor:checkedSensors){
-
-           /* if(checkedSensors.size()>lineCharts.size()){
+            for(Sensor sensor:checkedSensors){
                 createChart(sensor.getName());
-            }*/
-            createChart(sensor.getName());
-            SensorEventListener sensorEventListener1 = createSensorEventListener();
-            sensorEventListeners.add(sensorEventListener1);
-            sensorManager.registerListener(sensorEventListener1, sensor, SensorManager.SENSOR_DELAY_NORMAL);
-        }
+                SensorEventListener sensorEventListener1 = createSensorEventListener();
 
-        Sensor sensor = (checkedSensors.size()>0) ? checkedSensors.get(0):null;
-        if (sensor != null) {
+                boolean isRegistered = sensorManager.registerListener(sensorEventListener1, sensor, SensorManager.SENSOR_DELAY_NORMAL);
+                if(isRegistered){
+                    sensorEventListeners.add(sensorEventListener1);
+                    sensorConfigureViewModel.addRegisteredSensors(sensor);
+                }
+                else{
+
+                }
+            }
+
+            Log.d("Registered",sensorConfigureViewModel.getRegisteredSensors().size()+"");
+
             dataAcquisitionViewModel.setListening(true); //view model update as it register the listener
             startRecordingButton.setText("Stop");
         }else{
-            Toast.makeText(getActivity(),"Configure your sensors",Toast.LENGTH_SHORT).show();
+            Toast.makeText(getActivity(),"Configure your sensors and Activity",Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -299,9 +291,11 @@ public class DataAcquisitionFragment extends Fragment {
         for(SensorEventListener sensorEventListener1:sensorEventListeners){
             sensorManager.unregisterListener(sensorEventListener1);
         }
+        //remove all views
         chartContainer.removeAllViews();
-       // chartContainer.postInvalidate();
         dataAcquisitionViewModel.resetChartList();
+        sensorConfigureViewModel.removeRegistredSensors();
+        //close all files
         closeFileWriter();
     }
     private SensorEventListener createSensorEventListener() {
@@ -310,7 +304,7 @@ public class DataAcquisitionFragment extends Fragment {
             public void onSensorChanged(SensorEvent event) {
                 latestSensorReadings.put(event.sensor, event.values);
                 boolean allDataAvailable = true;
-                for (Sensor sensor : sensorConfigureViewModel.getCheckedSensors()) {
+                for (Sensor sensor : sensorConfigureViewModel.getRegisteredSensors()) {
                     if (!latestSensorReadings.containsKey(sensor)) {
                         allDataAvailable = false;
                         break;
@@ -341,7 +335,7 @@ public class DataAcquisitionFragment extends Fragment {
                 sensorDataString.append("Timestamp,");
 
                 // Append headers for each registered sensor
-                for (Sensor sensor : sensorConfigureViewModel.getCheckedSensors()) {
+                for (Sensor sensor : sensorConfigureViewModel.getRegisteredSensors()) {
                     String[] channels = {"_x", "_y", "_z","_a","_b"}; // Define the channels
 
                     float[] values = latestSensorReadings.get(sensor);
@@ -351,10 +345,8 @@ public class DataAcquisitionFragment extends Fragment {
                     }
 
                 }
-
-                // Append selected activities header
-                sensorDataString.append("Activities\n");
-
+                sensorDataString.setCharAt(sensorDataString.length()-1,' ');
+                sensorDataString.append("\n");
                 // Write the sensor data string to the CSV file
                 csvWriter.write(sensorDataString.toString());
 
@@ -367,15 +359,15 @@ public class DataAcquisitionFragment extends Fragment {
             sensorDataString.append(timestamp).append(",");
 
             // Append data from all registered sensors
-            for (Sensor sensor : sensorConfigureViewModel.getCheckedSensors()) {
+            for (Sensor sensor : sensorConfigureViewModel.getRegisteredSensors()) {
                 float[] values = latestSensorReadings.get(sensor);
                 for (float value : values) {
                     sensorDataString.append(value).append(",");
                 }
             }
+            sensorDataString.setCharAt(sensorDataString.length()-1,' ');
+            sensorDataString.append("\n");
 
-            // Append selected activities
-            sensorDataString.append(activityConfigureViewModel.getSelectedActivities()).append("\n");
 
             // Write the sensor data string to the CSV file
             csvWriter.write(sensorDataString.toString());
@@ -385,7 +377,7 @@ public class DataAcquisitionFragment extends Fragment {
     }
 
     private void plotDataForCharts(SensorEvent event,Sensor sensor) {
-        List<Sensor> checkedSensors = sensorConfigureViewModel.getCheckedSensors();
+        List<Sensor> checkedSensors = sensorConfigureViewModel.getRegisteredSensors();
         int sensorIndex = checkedSensors.indexOf(sensor);
         if (sensorIndex >= 0) {
             addEntry2(event, sensorIndex);
@@ -474,7 +466,7 @@ public class DataAcquisitionFragment extends Fragment {
         String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
 
         // Construct the file name with the timestamp
-        String fileName = "activitydata" + timestamp + ".csv";
+        String fileName = activityConfigureViewModel.getSelectedActivities()+timestamp + ".csv";
 
         csvFile = new File(dir, fileName);
 

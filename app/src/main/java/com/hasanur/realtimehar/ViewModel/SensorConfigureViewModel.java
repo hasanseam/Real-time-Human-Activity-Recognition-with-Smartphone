@@ -10,8 +10,11 @@ public class SensorConfigureViewModel extends ViewModel {
 
     private ArrayList<Sensor> checkedSensors;
 
+    private ArrayList<Sensor> registeredSensors;
+
     public SensorConfigureViewModel(){
         checkedSensors  = new ArrayList<Sensor>();
+        registeredSensors = new ArrayList<Sensor>();
     }
 
     public void addCheckedSensors(Sensor sensor){
@@ -21,6 +24,12 @@ public class SensorConfigureViewModel extends ViewModel {
     public void removeCheckedSensors(Sensor sensor){
         this.checkedSensors.remove(sensor);
     }
+
+    public void addRegisteredSensors(Sensor sensor){this.registeredSensors.add(sensor);}
+
+    public void removeRegistredSensors(){this.registeredSensors.clear();}
+
+    public  ArrayList<Sensor> getRegisteredSensors(){return registeredSensors;}
 
     public ArrayList<Sensor> getCheckedSensors() {
         return checkedSensors;

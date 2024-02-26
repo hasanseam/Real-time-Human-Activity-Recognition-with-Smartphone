@@ -1,15 +1,20 @@
 package com.hasanur.realtimehar;
 
+import android.app.DownloadManager;
+import android.content.Context;
+import android.net.Uri;
 import android.os.Bundle;
 
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.fragment.app.Fragment;
 
+import android.os.Environment;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -22,6 +27,12 @@ import com.hasanur.realtimehar.Model.FileDetails;
 import com.hasanur.realtimehar.ViewModel.DataVisualizationViewModel;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -59,17 +70,68 @@ public class ProfileFragment extends Fragment {
             }
         }
 
-        FileAdapter fileAdapter = new FileAdapter(fileDetailsList, new FileItemClickListener() {
+       /* FileAdapter fileAdapter = new FileAdapter(fileDetailsList, new FileItemClickListener() {
             @Override
             public void onItemClick(File file) {
                 // Open another fragment and perform action on file selection
                 openAnotherFragment(file);
             }
-        });
+        });*/
 
+        FileAdapter fileAdapter = new FileAdapter(fileDetailsList, new FileItemClickListener() {
+            @Override
+            public void onItemClick(File file) {
+                //openAnotherFragment(file);
+                openFileFragment();
+            }
+
+            @Override
+            public void onDownloadClick(File file) {
+                // Implement file download logic here
+                startFileDownload(file);
+            }
+        });
         recyclerView.setAdapter(fileAdapter);
         return fragmentView;
     }
+
+
+    private void startFileDownload(File file){
+        //check if internal storage writeable
+        String state = Environment.getExternalStorageState();
+        if (!Environment.MEDIA_MOUNTED.equals(state)) {
+            Toast.makeText(requireContext(), "External storage not writable", Toast.LENGTH_SHORT).show();
+            //return;
+        }
+
+        File destDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+
+        File destFile = new File(destDir, file.getName());
+
+        try {
+            // Copy the file to the destination directory
+            InputStream in = new FileInputStream(file);
+            OutputStream out = new FileOutputStream(destFile);
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = in.read(buffer)) > 0) {
+                out.write(buffer, 0, length);
+            }
+
+            in.close();
+            out.close();
+
+            // Notify the user that the file has been successfully downloaded
+            Toast.makeText(requireContext(), "File downloaded successfully", Toast.LENGTH_SHORT).show();
+        } catch (IOException e) {
+            e.printStackTrace();
+            // Notify the user if an error occurs during the download process
+            Toast.makeText(requireContext(), "Error downloading file", Toast.LENGTH_SHORT).show();
+        }
+
+        Log.d("Kichuna", "Seam click korse download e");
+    }
+
 
     private void openFileFragment() {
         Log.d("Kichuna", "Seam click korse");

@@ -3,6 +3,7 @@ package com.hasanur.realtimehar.Adapter;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -46,11 +47,15 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
         TextView fileDateTimeTextView;
         TextView fileSizeTextView;
 
+        Button downloadButton;
+
         public FileViewHolder(@NonNull View itemView) {
             super(itemView);
             fileNameTextView = itemView.findViewById(R.id.textFileName);
             fileDateTimeTextView = itemView.findViewById(R.id.textFileDate);
             fileSizeTextView = itemView.findViewById(R.id.textFileSize);
+            downloadButton = itemView.findViewById(R.id.download_button);
+
         }
 
         public void bind(final FileDetails fileDetails, final FileItemClickListener listener) {
@@ -64,6 +69,13 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
                     listener.onItemClick(fileDetails.getFile());
                 }
             });
+            downloadButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    listener.onDownloadClick(fileDetails.getFile());
+                }
+            });
+
         }
     }
 }
