@@ -48,6 +48,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
         TextView fileSizeTextView;
 
         Button downloadButton;
+        Button deleteButton;
 
         public FileViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -55,7 +56,7 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
             fileDateTimeTextView = itemView.findViewById(R.id.textFileDate);
             fileSizeTextView = itemView.findViewById(R.id.textFileSize);
             downloadButton = itemView.findViewById(R.id.download_button);
-
+            deleteButton = itemView.findViewById(R.id.delete_button);
         }
 
         public void bind(final FileDetails fileDetails, final FileItemClickListener listener) {
@@ -73,6 +74,13 @@ public class FileAdapter extends RecyclerView.Adapter<FileAdapter.FileViewHolder
                 @Override
                 public void onClick(View v) {
                     listener.onDownloadClick(fileDetails.getFile());
+                }
+            });
+
+            deleteButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    listener.onDeleteClick(fileDetails.getFile());
                 }
             });
 

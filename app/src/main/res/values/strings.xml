@@ -7,4 +7,6 @@
     <string name="profile">Profile</string>
     <!-- TODO: Remove or change this placeholder text -->
 
+    <string name="database_name">app.db</string>
+
 </resources>

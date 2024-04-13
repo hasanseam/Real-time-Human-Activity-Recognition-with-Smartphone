@@ -34,8 +34,10 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Hashtable;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Random;
 
 public class DataVisualizationFragment extends Fragment {
@@ -71,29 +73,42 @@ public class DataVisualizationFragment extends Fragment {
 
         File directory = new File(requireContext().getExternalFilesDir(null), "RealtimeHAR");
         File fileToRead = new File(directory, fileName);
+        boolean isFirstLineReaded = false;
+        Map<String, Integer> sensorGroupCount = new LinkedHashMap<>();
 
         if (fileToRead.exists() && fileToRead.isFile() && fileToRead.getName().endsWith(".csv")) {
             try {
                 BufferedReader bufferedReader = new BufferedReader(new FileReader(fileToRead));
                 String line;
+                int limit =0;
 
-                while ((line = bufferedReader.readLine()) != null) {
-                    String[] values = line.split(",");
-                    long timestampInMillis = convertTimestampToMillis(values[0]);
-                    String sensorName = values[values.length-2].toString();
-                    if(!hashtable.containsKey(sensorName)){
-                        hashtable.put(sensorName,hashtable.size());
-                        sensorDatalist.add(new SensorData(sensorName));
-                    }
+                while ((line = bufferedReader.readLine()) != null && limit++<2000) {
 
-                    if(hashtable.containsKey(sensorName)){
-                        int pos = hashtable.get(sensorName);
-                        SensorData sensorData = sensorDatalist.get(pos);
-                        double [] dataArr  = new double[values.length-3];
-                        for(int i = 0; i<values.length-3; i++){
-                            dataArr[i] = Double.parseDouble(values[i+1]);
+                    if(!isFirstLineReaded){
+                        isFirstLineReaded = true;
+                        String[] values = line.split(",");
+                        String[] sensorNames = new String[values.length - 1];
+                        System.arraycopy(values, 1, sensorNames, 0, sensorNames.length);
+                        Log.d("Name",sensorNames[0]);
+                        for (String sensor : sensorNames) {
+                            String sensorPrefix = sensor.substring(0, sensor.lastIndexOf(" "));
+                            sensorGroupCount.put(sensorPrefix, sensorGroupCount.getOrDefault(sensorPrefix, 0) + 1);
                         }
-                        sensorData.addData(dataArr);
+                        for (Map.Entry<String, Integer> entry : sensorGroupCount.entrySet()) {
+                            sensorDatalist.add(new SensorData(entry.getKey()));
+                        }
+                    }else {
+                        String [] values = line.split(",");
+                        int count = 1;
+                        int pos = 0;
+                        for (Map.Entry<String, Integer> entry : sensorGroupCount.entrySet()) {
+                            double [] dataArr  = new double[entry.getValue()];
+                            for(int i = 0; i< entry.getValue();i++){
+                                dataArr[i] = Double.parseDouble(values[count++]);
+                            }
+                            SensorData sensorData = sensorDatalist.get(pos++);
+                            sensorData.addData(dataArr);
+                        }
                     }
                 }
                 bufferedReader.close();
@@ -110,7 +125,7 @@ public class DataVisualizationFragment extends Fragment {
             Log.d("FileRead", "File not found or not a CSV file");
         }
         // create line chart
-        createLineCharts();
+       createLineCharts();
     }
 
     private void createLineCharts() {
@@ -229,11 +244,8 @@ public class DataVisualizationFragment extends Fragment {
 
         // Set the Y-axis range based on the overall minimum and maximum values
         YAxis leftAxis = lineChart.getAxisLeft();
-        leftAxis.setAxisMinimum(minY);
-        leftAxis.setAxisMaximum(maxY);
-        // After setting minY and maxY for the Y-axis
-        leftAxis.setAxisMinimum(minY);
-        leftAxis.setAxisMaximum(maxY);
+        leftAxis.setAxisMinimum(minY - minY/4);
+        leftAxis.setAxisMaximum(maxY+maxY/4);
 
 // Add LimitLines for minY and maxY
         LimitLine minYLimitLine = new LimitLine(minY,  minY+"");

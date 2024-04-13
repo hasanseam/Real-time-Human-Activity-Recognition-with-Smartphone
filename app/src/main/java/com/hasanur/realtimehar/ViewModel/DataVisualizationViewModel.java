@@ -4,7 +4,6 @@ import androidx.lifecycle.ViewModel;
 
 public class DataVisualizationViewModel extends ViewModel {
     private String fileName;
-
     public DataVisualizationViewModel(){
         this.fileName = "";
     }

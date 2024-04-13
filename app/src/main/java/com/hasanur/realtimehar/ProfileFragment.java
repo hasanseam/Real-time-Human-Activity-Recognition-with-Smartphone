@@ -53,48 +53,28 @@ public class ProfileFragment extends Fragment {
 
         recyclerView = fragmentView.findViewById(R.id.recyclerView);
         recyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-
-        File directory = new File(requireActivity().getExternalFilesDir(null), "RealtimeHAR");
-        File[] files = directory.listFiles();
-        List<FileDetails> fileDetailsList = new ArrayList<>();
-
-        if (files != null) {
-            for (File file : files) {
-                if (file.isFile() && file.getName().endsWith(".csv")) {
-                    String fileName = file.getName();
-                    String fileDateTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date(file.lastModified()));
-                    long fileSize = file.length(); // in bytes
-
-                    fileDetailsList.add(new FileDetails(fileName, fileDateTime, formatSize(fileSize), file));
-                }
-            }
-        }
-
-       /* FileAdapter fileAdapter = new FileAdapter(fileDetailsList, new FileItemClickListener() {
-            @Override
-            public void onItemClick(File file) {
-                // Open another fragment and perform action on file selection
-                openAnotherFragment(file);
-            }
-        });*/
-
-        FileAdapter fileAdapter = new FileAdapter(fileDetailsList, new FileItemClickListener() {
-            @Override
-            public void onItemClick(File file) {
-                //openAnotherFragment(file);
-                openFileFragment();
-            }
-
-            @Override
-            public void onDownloadClick(File file) {
-                // Implement file download logic here
-                startFileDownload(file);
-            }
-        });
-        recyclerView.setAdapter(fileAdapter);
+        setupRecyclerView();
         return fragmentView;
     }
 
+    private void deleteFile(File file) {
+        // Check if the file exists
+        if (file.exists()) {
+            // Attempt to delete the file
+            boolean deleted = file.delete();
+            if (deleted) {
+                // Notify the user that the file has been successfully deleted
+                Toast.makeText(requireContext(), "File deleted successfully", Toast.LENGTH_SHORT).show();
+                setupRecyclerView();
+            } else {
+                // Notify the user if an error occurs during the deletion process
+                Toast.makeText(requireContext(), "Failed to delete file", Toast.LENGTH_SHORT).show();
+            }
+        } else {
+            // Notify the user if the file does not exist
+            Toast.makeText(requireContext(), "File does not exist", Toast.LENGTH_SHORT).show();
+        }
+    }
 
     private void startFileDownload(File file){
         //check if internal storage writeable
@@ -130,6 +110,44 @@ public class ProfileFragment extends Fragment {
         }
 
         Log.d("Kichuna", "Seam click korse download e");
+    }
+
+    private void setupRecyclerView() {
+        File directory = new File(requireActivity().getExternalFilesDir(null), "RealtimeHAR");
+        File[] files = directory.listFiles();
+        List<FileDetails> fileDetailsList = new ArrayList<>();
+
+        if (files != null) {
+            for (File file : files) {
+                if (file.isFile() && file.getName().endsWith(".csv")) {
+                    String fileName = file.getName();
+                    String fileDateTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date(file.lastModified()));
+                    long fileSize = file.length(); // in bytes
+                    fileDetailsList.add(new FileDetails(fileName, fileDateTime, formatSize(fileSize), file));
+                }
+            }
+        }
+
+        FileAdapter fileAdapter = new FileAdapter(fileDetailsList, new FileItemClickListener() {
+            @Override
+            public void onItemClick(File file) {
+                openAnotherFragment(file);
+                //openFileFragment();
+            }
+
+            @Override
+            public void onDownloadClick(File file) {
+                // Implement file download logic here
+                startFileDownload(file);
+            }
+
+            @Override
+            public void onDeleteClick(File file) {
+                deleteFile(file);
+            }
+        });
+
+        recyclerView.setAdapter(fileAdapter);
     }
 
 

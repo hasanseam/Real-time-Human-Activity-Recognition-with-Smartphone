@@ -6,15 +6,20 @@ import java.util.ArrayList;
 
 public class ActivityConfigureViewModel extends ViewModel {
     private ArrayList<String> activities;
+    private ArrayList<String> activitiesRowNoInDatabase;
     private int selectedPosition;
+
+
 
     public ActivityConfigureViewModel() {
         this.activities  = new ArrayList<String>();
+        this.activitiesRowNoInDatabase = new ArrayList<>();
         this.selectedPosition = -1;
     }
 
-    public void addAcitivity(String activity){
+    public void addAcitivity(String rowNo,String activity){
         this.activities.add(activity);
+        this.activitiesRowNoInDatabase.add(rowNo);
     }
 
     public void removeActivity(int position){
@@ -23,6 +28,10 @@ public class ActivityConfigureViewModel extends ViewModel {
             
         }
         this.activities.remove(position);
+    }
+
+    public String getActivitiesRowNoInDatabase (int position){
+        return this.activitiesRowNoInDatabase.get(position);
     }
 
     public ArrayList<String> getActivities(){
