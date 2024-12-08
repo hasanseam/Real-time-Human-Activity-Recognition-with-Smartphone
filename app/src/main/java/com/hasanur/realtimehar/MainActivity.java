@@ -42,23 +42,17 @@ public class MainActivity extends AppCompatActivity {
         // set listener for bottom navigation
         binding.bottomNavigationView.setOnItemSelectedListener(
                 item -> {
-                    if(!dataAcquisitionViewModel.getListening()){
-                    Fragment replacedFragment;
-                    switch (item.getItemId()) {
-                        case R.id.data_acquisition:
+                    if (!dataAcquisitionViewModel.getListening()) {
+                        Fragment replacedFragment;
+                        if (item.getItemId() == R.id.data_acquisition) {
                             selectedItem = R.id.data_acquisition;
-                            break;
-                        case R.id.configure:
+                        } else if (item.getItemId() == R.id.configure) {
                             selectedItem = R.id.configure;
-                            break;
-                        case R.id.profile:
+                        } else if (item.getItemId() == R.id.profile) {
                             selectedItem = R.id.profile;
-                            break;
-
-                    }
+                        }
                         replaceFragment(getSelectedFragment());
-                    }
-                    else{
+                    } else {
                         AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
                         builder.setMessage("Navigation disabled while listening is active.");
                         builder.setPositiveButton("OK", null);
@@ -95,15 +89,14 @@ public class MainActivity extends AppCompatActivity {
 
     // getSelectedFragment function used to get the current active fragment which is saved into selectedItem
     private Fragment getSelectedFragment() {
-        switch (selectedItem) {
-            case R.id.data_acquisition:
-                return dataAcquisitionFragment;
-            case R.id.configure:
-                return configureFragment;
-            case R.id.profile:
-                return profileFragment;
-            default:
-                return null;
+        if (selectedItem == R.id.data_acquisition) {
+            return dataAcquisitionFragment;
+        } else if (selectedItem == R.id.configure) {
+            return configureFragment;
+        } else if (selectedItem == R.id.profile) {
+            return profileFragment;
+        } else {
+            return null;
         }
     }
 

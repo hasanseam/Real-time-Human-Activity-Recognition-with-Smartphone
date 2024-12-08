@@ -4,7 +4,7 @@ plugins {
 
 android {
     compileSdk 31
-
+    namespace "com.hasanur.realtimehar"
     defaultConfig {
         applicationId "com.example.realtimehar"
         minSdk 24
