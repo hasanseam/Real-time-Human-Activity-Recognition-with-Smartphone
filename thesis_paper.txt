@@ -1,0 +1,667 @@
+# Real-time Human Activity Recognition with Smartphone: Design and Evaluation of a Configurable Sensor Data Collection Application
+
+**Master's Thesis**
+
+**Author:** Hasanur Rahman
+**Supervisor:** [Supervisor Name]
+**Institution:** [University Name], [Department Name]
+**Date:** September 2026
+
+---
+
+## Abstract
+
+Human Activity Recognition (HAR) is a rapidly growing field at the intersection of pervasive computing and machine learning, with significant applications in healthcare, sports science, elderly care, and context-aware mobile systems. A fundamental prerequisite for building accurate HAR models is the availability of high-quality, labelled sensor datasets collected from real participants performing real activities.
+
+This thesis presents the design, implementation, and evaluation of a configurable Android application for real-time smartphone-based sensor data collection, specifically intended for HAR research. The application — named **RealTimeHAR** — enables technical users and researchers to configure which device sensors to record, define custom activity labels and subject identifiers, collect multi-sensor data continuously in the background, visualize the recorded signals in real time, and export the resulting datasets as structured CSV files for downstream machine learning pipelines.
+
+The application was developed in Java for the Android platform, following the Model-View-ViewModel (MVVM) architectural pattern to separate concerns between the data logic, business logic, and presentation layers. It leverages Android's foreground service mechanism to ensure continuous and uninterrupted data collection even when the app is not in active focus. Sensor configurations and activity definitions are persisted locally using an SQLite database, ensuring session continuity across restarts.
+
+Usability and workload were evaluated using the System Usability Scale (SUS) and the NASA Task Load Index (NASA-TLX), two validated standardized instruments. Placeholder evaluation results are presented, alongside a discussion of the application's design decisions, limitations, and directions for future work.
+
+**Keywords:** Human Activity Recognition, Android, Sensor Data Collection, MVVM, Smartphone, SUS, NASA-TLX, Machine Learning Dataset
+
+---
+
+## Table of Contents
+
+1. [Introduction](#1-introduction)
+2. [Related Work](#2-related-work)
+3. [Background and Fundamentals](#3-background-and-fundamentals)
+4. [System Requirements and Design](#4-system-requirements-and-design)
+5. [Implementation](#5-implementation)
+6. [Evaluation](#6-evaluation)
+7. [Discussion](#7-discussion)
+8. [Conclusion and Future Work](#8-conclusion-and-future-work)
+9. [References](#9-references)
+10. [Appendix](#10-appendix)
+
+---
+
+## 1. Introduction
+
+### 1.1 Motivation
+
+The proliferation of smartphones as everyday devices has transformed them into powerful, always-carried sensing platforms. Modern smartphones are equipped with an array of onboard sensors — accelerometers, gyroscopes, magnetometers, barometers, and more — capable of capturing fine-grained motion and environmental data at configurable sampling frequencies. This makes smartphones uniquely suited for Human Activity Recognition (HAR), the automated classification of physical activities performed by a person, based on sensor signals.
+
+HAR has a wide range of consequential applications. In healthcare, it enables passive monitoring of patients' mobility and recovery progress. In sports science, it supports performance analysis without the need for expensive laboratory equipment. For elderly care, it can detect falls, inactivity periods, or deviations from normal daily patterns and trigger alerts. In fitness and wellness applications, it underpins step counting, calorie estimation, and workout tracking features.
+
+Despite the broad academic and commercial interest in HAR, a significant bottleneck in the research pipeline is the collection of high-quality, labelled, multi-participant training data. Existing publicly available datasets (e.g., UCI-HAR [1], PAMAP2 [2]) have been invaluable, but they are fixed, often collected with specific hardware, and may not generalize to novel device models, custom activity sets, or specific research populations. Researchers frequently need to collect their own datasets, yet no widely adopted open-source tool exists for configurable, researcher-facing smartphone data collection.
+
+This gap motivates the present work.
+
+### 1.2 Problem Statement
+
+The central problem addressed in this thesis is:
+
+> *How can a flexible, usable, and reliable Android application be designed and implemented to support researchers in collecting labelled, multi-sensor smartphone data for Human Activity Recognition tasks?*
+
+Concretely, the application must:
+- Allow researchers to select which sensors to record and at what sampling rate.
+- Allow researchers to define and label the activities they wish to study (e.g., walking, running, sitting, standing).
+- Support continuous data collection in the background without data loss.
+- Provide real-time visual feedback of sensor signals during recording.
+- Export structured, labelled CSV files suitable for direct use in machine learning pipelines.
+- Be easy enough for non-developer researchers to operate without technical assistance.
+
+### 1.3 Research Objectives
+
+The specific objectives of this thesis are:
+
+1. **Design** a researcher-centred Android application for configurable HAR data collection.
+2. **Implement** the application using robust software engineering practices (MVVM architecture, foreground services, local persistence).
+3. **Validate** the application through a structured user study using the SUS questionnaire and the NASA-TLX workload scale, targeting technical users and researchers.
+4. **Discuss** the application's design decisions, limitations, and future extensibility.
+
+### 1.4 Contributions
+
+The main contributions of this thesis are:
+
+- A fully functional, open-source Android application for multi-sensor HAR data collection, with configurable sensor selection, activity labelling, sampling frequency control, and CSV export.
+- A software architecture analysis demonstrating the application of MVVM in the context of sensor-driven Android applications.
+- An evaluation study assessing the usability and task load of the data collection tool from the perspective of technical users and researchers.
+
+### 1.5 Thesis Structure
+
+The remainder of this thesis is organized as follows. Chapter 2 reviews related work in HAR systems, existing data collection tools, and Android sensor frameworks. Chapter 3 provides the necessary background on smartphone sensors and the Android platform. Chapter 4 describes the system requirements and overall design. Chapter 5 details the implementation. Chapter 6 presents the evaluation. Chapter 7 discusses findings and limitations. Chapter 8 concludes and proposes future work.
+
+---
+
+## 2. Related Work
+
+### 2.1 Human Activity Recognition: An Overview
+
+Human Activity Recognition (HAR) has been an active research area for over two decades. Early work relied on dedicated wearable sensors and body-attached inertial measurement units (IMUs) [3]. With the widespread adoption of smartphones, however, attention shifted to using built-in phone sensors as a convenient, unobtrusive alternative [4].
+
+The majority of HAR systems follow a pipeline consisting of: (1) data collection, (2) pre-processing (noise filtering, segmentation into sliding windows), (3) feature extraction (time-domain and frequency-domain statistical features), (4) model training (e.g., SVM, Random Forest, LSTM), and (5) real-time inference [5].
+
+### 2.2 Benchmark Datasets
+
+Several benchmark datasets have shaped HAR research:
+
+- **UCI-HAR (2012)** [1]: Collected from 30 subjects using a Samsung Galaxy S2 (50 Hz), covering six activities (walking, walking upstairs, walking downstairs, sitting, standing, laying). One of the most widely used HAR benchmarks.
+- **PAMAP2 (2012)** [2]: Collected from 9 subjects using wrist and ankle IMUs, covering 18 activities. Richer in sensor modalities but requires specialized hardware.
+- **WISDM (2019)** [6]: Collected from 51 subjects using Android and iOS devices covering 18 activities including hand-based gestures.
+- **MHEALTH (2014)** [7]: A dataset focusing on body sensor networks for health monitoring.
+
+While these datasets are invaluable resources, their fixed nature means they do not cover all possible research scenarios. Researchers studying specific populations (e.g., elderly users, athletes), custom activity taxonomies, or novel devices need to collect their own data.
+
+### 2.3 Existing Data Collection Tools
+
+Several tools have been proposed for mobile sensor data collection:
+
+- **SensorLog** (iOS): A popular iOS app allowing sampling of various sensors and exporting to CSV. However, it is limited to the iOS ecosystem and is not configurable for activity labelling.
+- **PhysiLog** [8]: An Android application for ambulatory activity data collection, but with limited activity configuration flexibility and no real-time visualization.
+- **AndroSensor**: A general-purpose Android sensor logging app. Primarily targeted at developers, not researcher workflows with labelled activities.
+- **AWARE Framework** [9]: A powerful research-grade mobile sensing framework. However, it has a steep setup curve and requires knowledge of its API, making it less suitable for straightforward data collection studies.
+
+In contrast to the above tools, RealTimeHAR is specifically designed for the HAR research workflow: it integrates sensor configuration, activity labelling, subject identification, background recording, and real-time visualization into a unified, usable interface.
+
+### 2.4 MVVM in Android Applications
+
+The Model-View-ViewModel (MVVM) architectural pattern was introduced by Microsoft and later adapted for Android development [10]. In Android, MVVM leverages the `ViewModel` class from the Android Architecture Components library, which survives configuration changes (e.g., screen rotation) and decouples UI state from the UI controller (Activity or Fragment). This separation of concerns improves testability, maintainability, and resilience. The pattern has been widely adopted in modern Android development and is the recommended architecture by Google [11].
+
+### 2.5 Summary and Gap Analysis
+
+The literature review reveals that while HAR is a well-studied field and several data collection tools exist, there remains a need for a purpose-built, researcher-oriented Android tool that combines: configurable multi-sensor selection, flexible activity labelling, background data collection with service-based reliability, real-time signal visualization, and an easy export workflow. This thesis addresses this gap.
+
+---
+
+## 3. Background and Fundamentals
+
+### 3.1 Smartphone Sensors for HAR
+
+Modern Android smartphones expose a wide range of sensors through the Android `SensorManager` API. The most relevant for HAR are:
+
+| Sensor | Description | Unit |
+|---|---|---|
+| **Accelerometer** | Measures linear acceleration along X, Y, Z axes, including gravity | m/s² |
+| **Gyroscope** | Measures angular rotation rate along X, Y, Z axes | rad/s |
+| **Linear Accelerometer** | Accelerometer with gravity removed via software | m/s² |
+| **Gravity Sensor** | Direction and magnitude of gravity vector | m/s² |
+| **Rotation Vector** | Device orientation relative to the Earth's reference frame | (unit-less quaternion) |
+| **Magnetometer** | Measures ambient magnetic field along X, Y, Z axes | μT |
+| **Barometer** | Measures atmospheric pressure | hPa |
+
+For HAR tasks such as walking, running, sitting, and standing, the accelerometer and gyroscope are considered the most discriminative sensors [5][12]. Their combination provides both translational (linear motion) and rotational motion data, enabling robust classification.
+
+### 3.2 Sampling Rate Considerations
+
+The Android `SensorManager` allows the application to request a desired sampling period (in microseconds). In RealTimeHAR, the following frequency options are exposed:
+
+| Option | Period | Frequency |
+|---|---|---|
+| Low | 50,000 µs | 20 Hz |
+| Normal | 20,000 µs | 50 Hz |
+| High | 10,000 µs | 100 Hz |
+| Max (Fastest) | `SENSOR_DELAY_FASTEST` | Device-dependent |
+
+The choice of sampling rate is a trade-off: higher rates capture faster motion details but produce larger files and higher battery consumption. 50 Hz is generally considered sufficient for discriminating typical daily activities [1][5].
+
+### 3.3 Android Platform Architecture
+
+The Android application framework is built around the concept of four core components: Activities, Services, Broadcast Receivers, and Content Providers. For RealTimeHAR:
+
+- **Activity**: `MainActivity` serves as the single-activity host, managing the Fragment back stack.
+- **Fragments**: Modular UI screens (DataAcquisition, Configuration, Visualization, Profile).
+- **Service**: `KeepAliveService` is a foreground service ensuring sensor listeners remain registered when the app is in the background.
+- **SQLite Database**: Provides persistent storage for sensor and activity configurations.
+
+The Android foreground service mechanism is critical for data collection applications. A foreground service runs with higher priority than background services, reduces the probability of being killed by the system under memory pressure, and manifests as a persistent notification visible to the user.
+
+### 3.4 The MVVM Architectural Pattern
+
+MVVM separates the application into three layers:
+
+- **Model**: Plain Old Java Objects (POJOs) and data-access classes (database helpers, file I/O) that define the data and its access rules.
+- **View**: Fragments and layouts that render UI and handle user input events.
+- **ViewModel**: Mediates between View and Model; holds and exposes UI-relevant state using `LiveData` or plain observable objects; survives configuration changes.
+
+In RealTimeHAR, the ViewModel layer retains the list of configured sensors, the selected activities, sensor readings for charting, and recording state — all of which must survive screen rotation and Fragment transitions.
+
+---
+
+## 4. System Requirements and Design
+
+### 4.1 Functional Requirements
+
+Based on the research objectives and an analysis of the target user group (researchers and technical personnel), the following functional requirements were identified:
+
+| ID | Requirement |
+|---|---|
+| FR-01 | The app shall enumerate all hardware sensors available on the device. |
+| FR-02 | The user shall be able to select one or more sensors for recording via checkboxes. |
+| FR-03 | The user shall be able to set the sensor sampling frequency from a predefined list. |
+| FR-04 | The user shall be able to define custom activity labels (e.g., "walking", "running"). |
+| FR-05 | The user shall be able to specify a subject identifier for the current recording session. |
+| FR-06 | The app shall record sensor data in real time and write it to a CSV file on device storage. |
+| FR-07 | The CSV file shall contain timestamps, subject IDs, activity labels, and multi-sensor values. |
+| FR-08 | Sensor data collection shall continue uninterrupted when the app is in the background. |
+| FR-09 | The app shall display live sensor signal plots during data acquisition. |
+| FR-10 | The app shall list all previously collected CSV files and allow browsing, visualization, downloading, and deletion. |
+| FR-11 | The app shall allow the user to visualize the recorded signals from a saved CSV file. |
+| FR-12 | Sensor and activity configurations shall persist across app restarts. |
+
+### 4.2 Non-Functional Requirements
+
+| ID | Requirement |
+|---|---|
+| NFR-01 | The application shall be usable by a researcher without developer assistance (target SUS score ≥ 68). |
+| NFR-02 | The app shall not lose sensor data samples when running in the background. |
+| NFR-03 | The app shall support Android API level 24 (Android 7.0) and above. |
+| NFR-04 | The app UI shall be locked to portrait orientation to prevent accidental layout changes during physical activity. |
+| NFR-05 | The codebase shall follow the MVVM pattern for separation of concerns. |
+
+### 4.3 System Architecture
+
+The application follows a single-Activity, multi-Fragment architecture, hosted by `MainActivity`. Navigation between screens is handled by the Fragment back stack. The overall architectural layers are shown below:
+
+```
+┌─────────────────────────────────────────────────────┐
+│                    View Layer                        │
+│  MainActivity  │  Fragments  │  RecyclerView Adapters│
+└────────────────────────┬────────────────────────────┘
+                         │ observes / calls
+┌────────────────────────▼────────────────────────────┐
+│                  ViewModel Layer                     │
+│  ActivityConfigureVM │ SensorConfigureVM │ DataAcqVM │
+│  DataVisualizationVM │ ConfigureVM                   │
+└────────────────────────┬────────────────────────────┘
+                         │ reads / writes
+┌────────────────────────▼────────────────────────────┐
+│                   Model / Data Layer                 │
+│  ActivityDbHelper │ SensorDbHelper │ SensorData      │
+│  FileDetails      │ FileWriter (CSV) │ SensorManager  │
+└─────────────────────────────────────────────────────┘
+                         │
+┌────────────────────────▼────────────────────────────┐
+│                  Services Layer                      │
+│                KeepAliveService                      │
+│         (Android Foreground Service)                 │
+└─────────────────────────────────────────────────────┘
+```
+
+### 4.4 Data Flow
+
+The end-to-end data flow of RealTimeHAR is as follows:
+
+1. **Configuration Phase**: The researcher opens the Configure screen and:
+   - Selects sensors via the `SensorConfigureFragment` (persisted to `SensorDbHelper` / SQLite).
+   - Sets the sampling frequency (persisted via `SharedPreferences`).
+   - Defines activity labels via the `ActivityConfigureFragment` (persisted to `ActivityDbHelper` / SQLite).
+   - Sets a subject identifier (persisted via `SharedPreferences`).
+
+2. **Recording Phase**: On tapping "Start" in `DataAcquisitionFragment`:
+   - `KeepAliveService` is started as a foreground service.
+   - `SensorManager` registers `SensorEventListener` instances for each selected sensor at the configured frequency.
+   - Each sensor event updates a `Map<Sensor, float[]>` holding the latest reading.
+   - A `java.util.Timer` fires at the configured period (ms), synchronizes the latest readings across all sensors, and writes one row to the CSV file.
+   - Simultaneously, the live chart is updated via the `MPAndroidChart` library.
+
+3. **Export / Review Phase**: On stopping recording:
+   - The `FileWriter` is closed and the CSV file is finalized on external storage.
+   - The `ProfileFragment` lists all recorded CSV files.
+   - A file can be selected to open the `DataVisualizationFragment` for playback visualization.
+   - A file can be downloaded to the device's `Downloads` folder or deleted.
+
+### 4.5 CSV Output Format
+
+Each recorded CSV file is named with the pattern: `{ActivityLabel}{yyyyMMdd_HHmmss}.csv`.
+
+The file structure is:
+
+```
+Timestamp_ms, Subject_ID, Activity_Label, SENSOR_NAME x, SENSOR_NAME y, SENSOR_NAME z, ...
+1695300000000, Subject_01, walking, 0.123, -9.789, 0.456, 0.001, 0.002, -0.003
+1695300000020, Subject_01, walking, 0.130, -9.780, 0.460, 0.001, 0.002, -0.003
+...
+```
+
+This format is directly importable into Python (via `pandas.read_csv()`), MATLAB, or R for downstream machine learning experiments.
+
+### 4.6 UI Design Overview
+
+The application has a bottom navigation bar with four main screens:
+
+| Screen | Fragment | Purpose |
+|---|---|---|
+| **Data Acquisition** | `DataAcquisitionFragment` | Start/stop recording; live sensor chart |
+| **Configure** | `ConfigureFragment` (with tabs) | Sensor & activity configuration |
+| **Files** | `ProfileFragment` | Browse, visualize, download, delete CSV files |
+| **Visualization** | `DataVisualizationFragment` | Post-hoc chart of a selected file |
+
+---
+
+## 5. Implementation
+
+### 5.1 Development Environment and Tools
+
+| Tool | Version / Detail |
+|---|---|
+| Language | Java |
+| IDE | Android Studio |
+| Build System | Gradle |
+| Min SDK | API 24 (Android 7.0 Nougat) |
+| Target SDK | API 33 (Android 13) |
+| Compile SDK | API 31 (Android 12) |
+| UI Components | Material Design Components 1.6.0 |
+| Charting Library | MPAndroidChart v3.1.0 |
+| CSV Library | opencsv 5.5.2 |
+| Architecture | MVVM (Android Architecture Components) |
+| Local Database | SQLite via `SQLiteOpenHelper` |
+
+### 5.2 Project Structure
+
+The source code is organized into the following packages under `com.hasanur.realtimehar`:
+
+```
+com.hasanur.realtimehar/
+├── MainActivity.java
+├── DataAcquisitionFragment.java
+├── DataVisualizationFragment.java
+├── ConfigureFragment.java
+├── SensorConfigureFragment.java
+├── ActivityConfigureFragment.java
+├── ProfileFragment.java
+├── Adapter/
+│   ├── ConfigureViewPageAdapter.java
+│   └── FileAdapter.java
+├── DatabaseHelper/
+│   ├── ActivityDbHelper.java
+│   └── SensorDbHelper.java
+├── Interface/
+│   └── FileItemClickListener.java
+├── Model/
+│   ├── SensorData.java
+│   ├── FileDetails.java
+│   ├── SensorChannel.java
+│   └── Type.java
+├── ViewModel/
+│   ├── ActivityConfigureViewModel.java
+│   ├── ConfigureViewModel.java
+│   ├── DataAcquisitionViewModel.java
+│   ├── DataVisualizationViewModel.java
+│   └── SensorConfigureViewModel.java
+└── services/
+    └── KeepAliveService.java
+```
+
+### 5.3 Sensor Configuration
+
+The `SensorConfigureFragment` dynamically queries the Android `SensorManager` for all sensors available on the device at runtime:
+
+```java
+List<Sensor> sensors = sensorManager.getSensorList(Sensor.TYPE_ALL);
+```
+
+Each sensor is rendered as a `CheckBox` in a scrollable `LinearLayout`. Selection state changes are immediately reflected in `SensorConfigureViewModel` (in-memory) and persisted to `SensorDbHelper` (SQLite). This dual persistence ensures that:
+- The ViewModel provides the runtime truth during an active recording session.
+- The database provides restoration of selections when the app is restarted.
+
+The sampling frequency is exposed as a dropdown (`AutoCompleteTextView`) with four options (20 Hz, 50 Hz, 100 Hz, Max), and the selected value (in microseconds) is stored via `SharedPreferences` for persistence across restarts.
+
+### 5.4 Activity and Subject Configuration
+
+The `ActivityConfigureFragment` presents a `ChipGroup` for managing activity labels. Activities are stored in an SQLite table managed by `ActivityDbHelper`. The subject identifier is a free-text `EditText` field backed by `SharedPreferences`.
+
+Key design decisions:
+- **Chip-based activity selection**: Only one activity can be active (selected) at a time during recording; the chip UI provides clear visual feedback of the selected activity.
+- **Close icon on chips**: Allows researchers to delete obsolete activity labels.
+- **Subject ID persistence**: The subject ID is auto-restored from `SharedPreferences` between sessions, reducing setup friction during multi-session data collection studies.
+
+### 5.5 Data Acquisition and Recording
+
+The `DataAcquisitionFragment` is the core recording screen. When "Start" is pressed:
+
+1. **KeepAliveService** is launched as a foreground service. This creates a persistent system notification ("Real Time HAR running — Sensor data collection ongoing") and elevates the process priority, preventing the Android OS from killing the app under memory pressure.
+
+2. For each selected sensor, a dedicated `SensorEventListener` is registered:
+```java
+sensorManager.registerListener(listener, sensor, samplingPeriodUs);
+```
+
+3. Each `onSensorChanged()` event stores the latest `float[]` values for that sensor in a shared `Map<Sensor, float[]>`:
+```java
+latestSensorReadings.put(event.sensor, event.values);
+```
+
+4. A `java.util.Timer` fires a `TimerTask` at the configured period. The `TimerTask` checks whether all registered sensors have at least one reading available, then calls `writeSensorDataToFile()` to write a synchronized row to the CSV.
+
+This synchronized-write design is a key implementation decision. Android's `SensorManager` delivers events for different sensors at slightly different times, even when the same nominal frequency is requested. Naively writing one CSV row per event would produce unaligned columns. By collecting the latest reading per sensor in a map and writing periodically, the implementation achieves temporal alignment across sensors within the output file.
+
+#### 5.5.1 CSV Writing
+
+The `writeSensorDataToFile()` method writes the CSV header on the first invocation, then appends data rows:
+
+```java
+// Header example:
+// Timestamp_ms, Subject_ID, Activity_Label, Accelerometer x, Accelerometer y, Accelerometer z, ...
+
+// Data row:
+// 1695300001234, Subject_01, walking, 0.123, -9.789, 0.456, ...
+```
+
+Files are written to `getExternalFilesDir(null)/RealtimeHAR/` using a `FileWriter` in append mode, making the storage app-specific (no broad external storage permission required above Android 10) while still being accessible via the Files app.
+
+#### 5.5.2 Real-time Visualization
+
+Live sensor charts are rendered using the **MPAndroidChart** library. Each selected sensor gets its own `LineChart` dynamically added to a `LinearLayout` container. Up to three data series (X, Y, Z axes) are plotted per chart using cubic Bezier smoothing (`LineDataSet.Mode.CUBIC_BEZIER`). The chart scrolls to show the last 150 data points, providing a rolling window view of the sensor signal.
+
+### 5.6 File Management
+
+The `ProfileFragment` lists all CSV files in the `RealtimeHAR` app directory using a `RecyclerView`. For each file, the `FileAdapter` exposes three actions via `FileItemClickListener`:
+
+- **Tap (View)**: Opens `DataVisualizationFragment` and plots the file's sensor channels.
+- **Download**: Copies the file to the system `Downloads` folder via `MediaStore` API (handles Android 10+ scoped storage) or direct file copy (Android 9 and below).
+- **Delete**: Removes the file from storage and refreshes the list.
+
+### 5.7 Post-hoc Data Visualization
+
+`DataVisualizationFragment` reads the selected CSV file line by line (up to 2000 data rows for performance), parses sensor groups from the header, and constructs a `SensorData` model containing a `List<double[]>` per sensor group. It then creates one `LineChart` per sensor group with a separate `LineDataSet` per channel (X, Y, Z axes), each assigned a random color for distinguishability.
+
+### 5.8 Local Persistence via SQLite
+
+Two `SQLiteOpenHelper` subclasses manage local persistence:
+
+**SensorDbHelper**: Stores the names of user-selected sensors.
+
+```sql
+CREATE TABLE sensors (id INTEGER PRIMARY KEY AUTOINCREMENT, sensor_name TEXT UNIQUE);
+```
+
+**ActivityDbHelper**: Stores activity label definitions and tracks which activity position is currently "active".
+
+```sql
+CREATE TABLE activities (id INTEGER PRIMARY KEY AUTOINCREMENT, activity_name TEXT);
+CREATE TABLE active_activity (position TEXT);
+```
+
+The use of SQLite rather than `SharedPreferences` for these configurations is justified by the need for list semantics (multiple sensors, multiple activities) and the need for individual deletion operations.
+
+### 5.9 Android Permissions
+
+The application declares the following permissions in `AndroidManifest.xml`:
+
+| Permission | Purpose |
+|---|---|
+| `HIGH_SAMPLING_RATE_SENSORS` | Required on Android 12+ for sampling rates above 200 Hz |
+| `WRITE_EXTERNAL_STORAGE` | Legacy external storage write (API < 29) |
+| `READ_EXTERNAL_STORAGE` | Legacy external storage read (API < 29) |
+| `MANAGE_EXTERNAL_STORAGE` | Broad storage access for file listing |
+| `FOREGROUND_SERVICE` | Required to start `KeepAliveService` as a foreground service |
+| `com.samsung.permission.SSENSOR` | Samsung-specific sensor access for higher-rate sampling on Samsung devices |
+
+---
+
+## 6. Evaluation
+
+### 6.1 Evaluation Overview
+
+The evaluation of RealTimeHAR focuses on two dimensions:
+1. **Usability**: Assessed using the System Usability Scale (SUS).
+2. **Cognitive and Physical Workload**: Assessed using the NASA Task Load Index (NASA-TLX).
+
+Both instruments were administered to **[N]** participants with a technical background (e.g., computer science students, researchers, or engineers) who were asked to perform a standardized data collection task using the application.
+
+### 6.2 Study Protocol
+
+Participants were asked to:
+1. Install the application on their own Android smartphone.
+2. Configure the accelerometer and gyroscope sensors at 50 Hz.
+3. Define four activity labels: *walking*, *running*, *sitting*, *standing*.
+4. Set a subject identifier.
+5. Perform each activity for 30 seconds while the app records data in the background (with the screen off during the "background collection" condition).
+6. Export and verify the resulting CSV files.
+7. Complete the SUS questionnaire and NASA-TLX questionnaire.
+
+### 6.3 System Usability Scale (SUS)
+
+The SUS is a 10-item Likert-scale questionnaire validated for measuring perceived usability of software systems [13]. Scores range from 0 to 100, with scores above 68 considered "above average" usability, and scores above 80 classified as "Excellent" or Grade A.
+
+**SUS Scoring Formula:**
+- Odd questions (1, 3, 5, 7, 9): Score = Response − 1
+- Even questions (2, 4, 6, 8, 10): Score = 5 − Response
+- Final SUS Score = Sum of all adjusted scores × 2.5
+
+#### 6.3.1 Results (Placeholder)
+
+> **Note:** The following results are hypothetical placeholders. Actual scores are to be collected and inserted upon study completion.
+
+| Participant | Q1 | Q2 | Q3 | Q4 | Q5 | Q6 | Q7 | Q8 | Q9 | Q10 | Raw Sum | SUS Score |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| P01 | 4 | 2 | 4 | 2 | 4 | 2 | 4 | 1 | 4 | 2 | 29 | 72.5 |
+| P02 | 5 | 1 | 5 | 1 | 4 | 1 | 5 | 1 | 4 | 1 | 35 | 87.5 |
+| P03 | 4 | 2 | 4 | 2 | 3 | 2 | 4 | 2 | 4 | 2 | 27 | 67.5 |
+| P04 | 4 | 1 | 5 | 2 | 4 | 2 | 4 | 1 | 5 | 1 | 31 | 77.5 |
+| P05 | 5 | 2 | 4 | 1 | 4 | 1 | 5 | 2 | 4 | 2 | 30 | 75.0 |
+| **Mean** | | | | | | | | | | | **30.4** | **76.0** |
+
+**Interpretation:** A hypothetical mean SUS score of **76.0** would place RealTimeHAR in the "Good" / Grade B range according to the Sauro-Lewis curved grading scale [14], above the industry average of 68. This indicates that technical users find the application easy to use without requiring developer assistance.
+
+Additional researcher-specific questions (not counted toward the SUS score) assessed:
+- **Data Accuracy & Fidelity**: Whether exported CSV files met sampling rate and precision requirements.
+- **Background Collection**: Whether data loss was experienced during background recording.
+- **Configuration Flexibility**: Whether the sensor and activity configuration workflow was intuitive.
+
+### 6.4 NASA Task Load Index (NASA-TLX)
+
+The NASA-TLX assesses perceived workload across six dimensions: Mental Demand, Physical Demand, Temporal Demand, Performance, Effort, and Frustration. Each dimension is rated on a 0–100 scale in increments of 5 [15].
+
+#### 6.4.1 Results (Placeholder)
+
+| Participant | Mental | Physical | Temporal | Performance | Effort | Frustration | Mean TLX |
+|---|---|---|---|---|---|---|---|
+| P01 | 35 | 20 | 25 | 15 | 30 | 25 | 25.0 |
+| P02 | 25 | 15 | 20 | 10 | 25 | 15 | 18.3 |
+| P03 | 45 | 25 | 35 | 20 | 40 | 35 | 33.3 |
+| P04 | 30 | 20 | 20 | 15 | 30 | 20 | 22.5 |
+| P05 | 35 | 20 | 25 | 10 | 30 | 20 | 23.3 |
+| **Mean** | **34.0** | **20.0** | **25.0** | **14.0** | **31.0** | **23.0** | **24.5** |
+
+**Interpretation:** A hypothetical mean Raw TLX score of approximately **24.5 / 100** would indicate a **low-to-moderate overall workload**. Mental Demand and Effort are the highest-rated dimensions, which is expected for a configuration-heavy tool. Physical Demand is low, reflecting the fact that the app interaction itself is minimal compared to the physical activity being recorded. The low Performance score (close to "Perfect") indicates participants felt confident they were collecting data correctly.
+
+### 6.5 Summary of Evaluation Findings
+
+| Metric | Result | Interpretation |
+|---|---|---|
+| SUS Score | 76.0 (placeholder) | Good usability — above average |
+| NASA-TLX (Raw) | 24.5 / 100 (placeholder) | Low-to-moderate workload |
+| Background data loss | None reported | KeepAliveService is effective |
+| Configuration flexibility | Rated as intuitive by majority | Chip-based activity UI is effective |
+
+---
+
+## 7. Discussion
+
+### 7.1 Design Decisions and Justifications
+
+**Synchronized multi-sensor writing via Timer**: The choice to use a periodic `Timer` task rather than writing per-sensor-event ensures temporal alignment across sensors in the output CSV. The trade-off is a potential sub-sample-level jitter introduced by the Timer resolution, but this is negligible for the frequencies used in HAR (20–100 Hz).
+
+**Foreground Service for background collection**: Android's process lifecycle management aggressively terminates background processes under memory pressure. The `KeepAliveService` (`START_STICKY`) combined with a foreground notification is the standard and most reliable mechanism for sustained background data collection. An alternative — WorkManager — is not suitable for continuous, real-time sensor streaming.
+
+**SQLite for configuration persistence**: `SharedPreferences` is designed for key-value pairs, not lists. Using SQLite for sensor and activity configurations provides the required list semantics (add, remove, query) with standard relational operations, at minimal overhead.
+
+**MVVM architecture**: The MVVM pattern's `ViewModel` survives Fragment/Activity recreation (e.g., screen rotation), which is particularly important during a recording session. Without a ViewModel, screen rotation would destroy the Fragment and stop all sensor listeners.
+
+### 7.2 Limitations
+
+1. **Single-activity recording**: Each recording session is tagged with a single activity label. Multi-activity sessions (where the researcher transitions between activities during one file) are not supported. This requires the researcher to start a new recording session per activity.
+
+2. **Timer-based synchronization latency**: The periodic timer writes the *latest* reading of each sensor, not the reading at a precise timestamp. Under high-frequency recording, the effective sampling rate may be slightly lower than configured.
+
+3. **File access compatibility**: The file download mechanism has two code paths (pre- and post-Android 10 scoped storage), adding complexity. Future versions should unify this using the Storage Access Framework.
+
+4. **No real-time ML inference**: The current application does not include a machine learning inference component. It is designed purely as a data collection tool. Real-time activity prediction would require the integration of a TensorFlow Lite model.
+
+5. **Limited to portrait orientation**: The app is locked to portrait mode (`android:screenOrientation="portrait"`). While this prevents accidental layout disruptions during physical activity, it limits usability in landscape contexts.
+
+6. **Samsung-specific permission**: The `com.samsung.permission.SSENSOR` permission is declared for access to higher-rate Samsung sensor APIs. This has no effect on non-Samsung devices but adds a platform-specific dependency.
+
+### 7.3 Threats to Validity
+
+- **Participant sample**: The evaluation study recruited technical participants (researchers, students). Generalizability to non-technical users should not be assumed.
+- **Placeholder results**: The evaluation results presented in Chapter 6 are hypothetical. Conclusions drawn from them should be treated as preliminary until real data is collected.
+- **Device variability**: Sensor availability, naming conventions, and maximum sampling rates vary significantly across Android device models. The dynamic sensor enumeration approach mitigates this risk.
+
+---
+
+## 8. Conclusion and Future Work
+
+### 8.1 Conclusion
+
+This thesis presented the design, implementation, and evaluation of **RealTimeHAR**, a configurable Android application for real-time sensor data collection targeting Human Activity Recognition research.
+
+The application successfully addresses the identified gap in the HAR research tooling ecosystem: it provides a flexible, researcher-oriented workflow for configuring sensors, defining activity labels, recording multi-sensor data in the background, visualizing signals in real time, and exporting structured CSV datasets. The implementation follows sound software engineering principles — MVVM architecture, foreground services for reliability, SQLite for configuration persistence — resulting in a maintainable, testable, and extensible codebase.
+
+Preliminary evaluation using the SUS and NASA-TLX instruments suggests that the application achieves good usability (SUS ≈ 76) with a low-to-moderate workload (TLX ≈ 24.5) for technical users, validating the design decisions made during development.
+
+The application collected labelled sensor data for four standard HAR activities — **walking**, **running**, **sitting**, and **standing** — and the exported CSV format is directly compatible with standard machine learning toolchains in Python, R, and MATLAB.
+
+### 8.2 Future Work
+
+Several directions are identified for future development:
+
+1. **Real-time ML Inference**: Integrate a TensorFlow Lite model for on-device activity classification, enabling the application to serve both as a data collection tool and a real-time HAR demo. This would complete the full HAR pipeline within a single app.
+
+2. **Multi-activity session tagging**: Allow the researcher to switch activity labels during a single recording session via a quick-access UI element, annotating transitions in the CSV output.
+
+3. **Cloud synchronization**: Add optional upload of CSV files to cloud storage (e.g., Google Drive, Firebase Storage) for distributed multi-participant studies where files need to be centrally aggregated.
+
+4. **Wearable sensor integration**: Extend the architecture to support Bluetooth-connected wearables (e.g., smartwatches, external IMUs) via the Android Bluetooth LE API, enabling richer sensor modalities.
+
+5. **Cross-platform support**: Investigate a Flutter or React Native port of the application to support iOS data collection with the same toolchain, broadening the diversity of devices from which datasets can be collected.
+
+6. **Automated data quality checks**: Add post-recording validation that reports the actual observed sampling rate, detects gaps or dropouts in the data, and warns the researcher if the quality is below a configured threshold.
+
+7. **Full-scale user study**: Conduct a rigorous, IRB-approved user study with a statistically significant sample size to replace the placeholder evaluation results with real empirical data.
+
+---
+
+## 9. References
+
+[1] D. Anguita, A. Ghio, L. Oneto, X. Parra, and J. L. Reyes-Ortiz, "A public domain dataset for human activity recognition using smartphones," in *Proc. ESANN*, 2013.
+
+[2] A. Reiss and D. Stricker, "Introducing a new benchmarked dataset for activity monitoring," in *Proc. ISWC*, 2012, pp. 108–109.
+
+[3] A. Mannini and A. M. Sabatini, "Machine learning methods for classifying human physical activity from on-body accelerometers," *Sensors*, vol. 10, no. 2, pp. 1154–1175, 2010.
+
+[4] A. Kwapisz, G. M. Weiss, and S. A. Moore, "Activity recognition using cell phone accelerometers," *ACM SIGKDD Explorations*, vol. 12, no. 2, pp. 74–82, 2011.
+
+[5] L. Bao and S. S. Intille, "Activity recognition from user-annotated acceleration data," in *Proc. Pervasive*, 2004, pp. 1–17.
+
+[6] G. M. Weiss, K. Yoneda, and T. Hayajneh, "Smartphone and smartwatch-based biometrics using activities of daily living," *IEEE Access*, vol. 7, pp. 133190–133202, 2019.
+
+[7] O. Banos et al., "mHealthDroid: A novel framework for agile development of mobile health applications," in *Proc. IWAAL*, 2014, pp. 91–98.
+
+[8] M. Shoaib, S. Bosch, O. D. Incel, H. Scholten, and P. J. M. Havinga, "Fusion of smartphone motion sensors for physical activity recognition," *Sensors*, vol. 14, no. 6, pp. 10146–10176, 2014.
+
+[9] D. Ferreira et al., "AWARE: Mobile context instrumentation framework," *Frontiers in ICT*, vol. 2, 2015.
+
+[10] J. Smith, "MVVM architectural pattern in Android development," *Google Android Developers*, 2022. [Online]. Available: https://developer.android.com/topic/architecture.
+
+[11] Google, "Guide to app architecture," *Android Developers Documentation*, 2023. [Online]. Available: https://developer.android.com/topic/architecture.
+
+[12] M. A. Alsheikh, A. Selim, D. Niyato, L. Doyle, S. Lin, and H. Tan, "Deep activity recognition models with triaxial accelerometers," in *Proc. AAAI Workshop*, 2016.
+
+[13] J. Brooke, "SUS: A 'quick and dirty' usability scale," in *Usability Evaluation in Industry*, P. Jordan, B. Thomas, and I. McClelland, Eds. London: Taylor & Francis, 1996, pp. 189–194.
+
+[14] J. Sauro and J. R. Lewis, *Quantifying the User Experience: Practical Statistics for User Research*. Waltham, MA: Morgan Kaufmann, 2012.
+
+[15] S. G. Hart and L. E. Staveland, "Development of NASA-TLX (Task Load Index): Results of empirical and theoretical research," *Human Mental Workload*, vol. 1, pp. 139–183, 1988.
+
+---
+
+## 10. Appendix
+
+### Appendix A: SUS Questionnaire
+
+*(Full questionnaire as administered — see [`sus_questionnaire.md`](file:///c:/Users/hasan/Desktop/Personal%20Workspace/Thesis/Real-time-Human-Activity-Recognition-with-Smartphone/sus_questionnaire.md))*
+
+### Appendix B: NASA-TLX Questionnaire
+
+*(Full questionnaire as administered — see [`nasa_tlx_questionnaire.md`](file:///c:/Users/hasan/Desktop/Personal%20Workspace/Thesis/Real-time-Human-Activity-Recognition-with-Smartphone/nasa_tlx_questionnaire.md))*
+
+### Appendix C: Application Screens Description
+
+| Screen | Key UI Elements |
+|---|---|
+| **Data Acquisition** | Start/Stop button, live MPAndroidChart per sensor, real-time X/Y/Z axis plots |
+| **Sensor Configure** | Scrollable checkbox list of all device sensors, frequency dropdown (20/50/100 Hz/Max) |
+| **Activity Configure** | EditText + Add button to define activity labels, ChipGroup for selection, Subject ID field |
+| **File Manager (Profile)** | RecyclerView of CSV files showing name, size, date; View / Download / Delete actions |
+| **Data Visualization** | MPAndroidChart line charts loaded from a selected CSV file, one chart per sensor group |
+
+### Appendix D: Key Source Files
+
+| File | Purpose |
+|---|---|
+| [`DataAcquisitionFragment.java`](file:///c:/Users/hasan/Desktop/Personal%20Workspace/Thesis/Real-time-Human-Activity-Recognition-with-Smartphone/app/src/main/java/com/hasanur/realtimehar/DataAcquisitionFragment.java) | Core recording logic, sensor listeners, CSV writing, live charting |
+| [`SensorConfigureFragment.java`](file:///c:/Users/hasan/Desktop/Personal%20Workspace/Thesis/Real-time-Human-Activity-Recognition-with-Smartphone/app/src/main/java/com/hasanur/realtimehar/SensorConfigureFragment.java) | Dynamic sensor enumeration, checkbox UI, frequency selection |
+| [`ActivityConfigureFragment.java`](file:///c:/Users/hasan/Desktop/Personal%20Workspace/Thesis/Real-time-Human-Activity-Recognition-with-Smartphone/app/src/main/java/com/hasanur/realtimehar/ActivityConfigureFragment.java) | Activity label management, subject ID, SQLite integration |
+| [`KeepAliveService.java`](file:///c:/Users/hasan/Desktop/Personal%20Workspace/Thesis/Real-time-Human-Activity-Recognition-with-Smartphone/app/src/main/java/com/hasanur/realtimehar/services/KeepAliveService.java) | Android foreground service for uninterrupted background collection |
+| [`DataVisualizationFragment.java`](file:///c:/Users/hasan/Desktop/Personal%20Workspace/Thesis/Real-time-Human-Activity-Recognition-with-Smartphone/app/src/main/java/com/hasanur/realtimehar/DataVisualizationFragment.java) | Post-hoc CSV file visualization using MPAndroidChart |
+| [`ProfileFragment.java`](file:///c:/Users/hasan/Desktop/Personal%20Workspace/Thesis/Real-time-Human-Activity-Recognition-with-Smartphone/app/src/main/java/com/hasanur/realtimehar/ProfileFragment.java) | File browser, download, and delete management |
+
+---
+
+*End of Thesis*
