@@ -1,44 +1,73 @@
-<!-- Your custom layout for each item in the ListView -->
-<LinearLayout
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical">
+    android:layout_marginHorizontal="8dp"
+    android:layout_marginVertical="4dp"
+    app:cardElevation="2dp"
+    app:cardCornerRadius="8dp">
 
-    <TextView
-        android:id="@+id/textFileName"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textStyle="bold"/>
+        android:padding="12dp">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="horizontal">
+        <com.google.android.material.textview.MaterialTextView
+            android:id="@+id/textFileName"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:textAppearance="?attr/textAppearanceSubtitle1"
+            android:textColor="?attr/colorOnSurface"
+            android:textStyle="bold"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
 
-        <TextView
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/textFileDate"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layout_weight="1" />
+            android:layout_marginTop="8dp"
+            android:textAppearance="?attr/textAppearanceBody2"
+            android:textColor="?android:attr/textColorSecondary"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/textFileSize"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/textFileName" />
 
-        <TextView
+        <com.google.android.material.textview.MaterialTextView
             android:id="@+id/textFileSize"
             android:layout_width="wrap_content"
-            android:layout_height="wrap_content" />
-        <Button
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="8dp"
+            android:textAppearance="?attr/textAppearanceBody2"
+            android:textColor="?android:attr/textColorSecondary"
+            app:layout_constraintBottom_toBottomOf="@+id/textFileDate"
+            app:layout_constraintEnd_toStartOf="@+id/download_button"
+            app:layout_constraintTop_toTopOf="@+id/textFileDate" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/download_button"
+            style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:drawableLeft="@drawable/ic_download"
-            />
-        <Button
+            app:icon="@drawable/ic_download"
+            app:layout_constraintBottom_toBottomOf="@+id/textFileDate"
+            app:layout_constraintEnd_toStartOf="@+id/delete_button"
+            app:layout_constraintTop_toTopOf="@+id/textFileDate" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/delete_button"
+            style="@style/Widget.MaterialComponents.Button.TextButton.Icon"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="center_vertical"
-            android:drawableLeft="@drawable/ic_delete"
-            />
-    </LinearLayout>
-</LinearLayout>
+            app:icon="@drawable/ic_delete"
+            app:layout_constraintBottom_toBottomOf="@+id/textFileDate"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="@+id/textFileDate" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</com.google.android.material.card.MaterialCardView>

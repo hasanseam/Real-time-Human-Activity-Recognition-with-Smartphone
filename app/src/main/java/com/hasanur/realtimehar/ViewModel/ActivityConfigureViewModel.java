@@ -53,4 +53,13 @@ public class ActivityConfigureViewModel extends ViewModel {
         return this.activities.get(this.selectedPosition);
     }
 
+    private String subjectId = "";
+
+    public void setSubjectId(String subjectId) {
+        this.subjectId = subjectId;
+    }
+
+    public String getSubjectId() {
+        return subjectId;
+    }
 }

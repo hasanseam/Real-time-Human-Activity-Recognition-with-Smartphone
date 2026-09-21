@@ -15,6 +15,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.text.Editable;
+import android.text.TextWatcher;
+import android.content.Context;
+import android.content.SharedPreferences;
 
 import com.google.android.material.chip.Chip;
 import com.google.android.material.chip.ChipGroup;
@@ -31,6 +35,10 @@ public class ActivityConfigureFragment extends Fragment {
     private ChipGroup chipGroup;
     private EditText chipEditText;
     private Button addChipButton;
+    private EditText subjectIdEditText;
+
+    private static final String PREFS_NAME = "ActivityPrefs";
+    private static final String KEY_SUBJECT_ID = "subject_id";
 
     private ActivityConfigureViewModel activityConfigureViewModel;
     private ActivityDbHelper activityDbHelper;
@@ -49,6 +57,27 @@ public class ActivityConfigureFragment extends Fragment {
 
         //database helper initialization
         activityDbHelper = new ActivityDbHelper(requireContext());
+
+        subjectIdEditText = fragmentView.findViewById(R.id.subject_id_edit_text);
+        SharedPreferences prefs = requireActivity().getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
+        String savedSubjectId = prefs.getString(KEY_SUBJECT_ID, "Subject_01");
+        subjectIdEditText.setText(savedSubjectId);
+        activityConfigureViewModel.setSubjectId(savedSubjectId);
+
+        subjectIdEditText.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                String newId = s.toString().trim();
+                activityConfigureViewModel.setSubjectId(newId);
+                prefs.edit().putString(KEY_SUBJECT_ID, newId).apply();
+            }
+        });
 
         // Set click listener for the add chip button
         addChipButton.setOnClickListener(new View.OnClickListener() {

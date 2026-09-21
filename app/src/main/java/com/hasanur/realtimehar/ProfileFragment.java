@@ -2,8 +2,11 @@ package com.hasanur.realtimehar;
 
 import android.app.DownloadManager;
 import android.content.Context;
+import android.content.ContentValues;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
+import android.provider.MediaStore;
 
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
@@ -46,7 +49,7 @@ public class ProfileFragment extends Fragment {
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+            Bundle savedInstanceState) {
         View fragmentView = inflater.inflate(R.layout.fragment_profile, container, false);
 
         dataVisualizationViewModel = new ViewModelProvider(requireActivity()).get(DataVisualizationViewModel.class);
@@ -76,37 +79,61 @@ public class ProfileFragment extends Fragment {
         }
     }
 
-    private void startFileDownload(File file){
-        //check if internal storage writeable
-        String state = Environment.getExternalStorageState();
-        if (!Environment.MEDIA_MOUNTED.equals(state)) {
-            Toast.makeText(requireContext(), "External storage not writable", Toast.LENGTH_SHORT).show();
-            //return;
-        }
+    private void startFileDownload(File file) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ContentValues values = new ContentValues();
+            values.put(MediaStore.MediaColumns.DISPLAY_NAME, file.getName());
+            values.put(MediaStore.MediaColumns.MIME_TYPE, "text/csv");
+            values.put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS);
 
-        File destDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
-
-        File destFile = new File(destDir, file.getName());
-
-        try {
-            // Copy the file to the destination directory
-            InputStream in = new FileInputStream(file);
-            OutputStream out = new FileOutputStream(destFile);
-            byte[] buffer = new byte[1024];
-            int length;
-            while ((length = in.read(buffer)) > 0) {
-                out.write(buffer, 0, length);
+            Uri uri = requireContext().getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI, values);
+            if (uri != null) {
+                try {
+                    OutputStream out = requireContext().getContentResolver().openOutputStream(uri);
+                    InputStream in = new FileInputStream(file);
+                    byte[] buffer = new byte[1024];
+                    int length;
+                    if (out != null) {
+                        while ((length = in.read(buffer)) > 0) {
+                            out.write(buffer, 0, length);
+                        }
+                        out.close();
+                    }
+                    in.close();
+                    Toast.makeText(requireContext(), "File downloaded successfully", Toast.LENGTH_SHORT).show();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    Toast.makeText(requireContext(), "Error downloading file", Toast.LENGTH_SHORT).show();
+                }
+            }
+        } else {
+            String state = Environment.getExternalStorageState();
+            if (!Environment.MEDIA_MOUNTED.equals(state)) {
+                Toast.makeText(requireContext(), "External storage not writable", Toast.LENGTH_SHORT).show();
+                return;
             }
 
-            in.close();
-            out.close();
+            File destDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);
+            if (!destDir.exists()) {
+                destDir.mkdirs();
+            }
+            File destFile = new File(destDir, file.getName());
 
-            // Notify the user that the file has been successfully downloaded
-            Toast.makeText(requireContext(), "File downloaded successfully", Toast.LENGTH_SHORT).show();
-        } catch (IOException e) {
-            e.printStackTrace();
-            // Notify the user if an error occurs during the download process
-            Toast.makeText(requireContext(), "Error downloading file", Toast.LENGTH_SHORT).show();
+            try {
+                InputStream in = new FileInputStream(file);
+                OutputStream out = new FileOutputStream(destFile);
+                byte[] buffer = new byte[1024];
+                int length;
+                while ((length = in.read(buffer)) > 0) {
+                    out.write(buffer, 0, length);
+                }
+                in.close();
+                out.close();
+                Toast.makeText(requireContext(), "File downloaded successfully", Toast.LENGTH_SHORT).show();
+            } catch (IOException e) {
+                e.printStackTrace();
+                Toast.makeText(requireContext(), "Error downloading file", Toast.LENGTH_SHORT).show();
+            }
         }
 
         Log.d("Kichuna", "Seam click korse download e");
@@ -121,7 +148,8 @@ public class ProfileFragment extends Fragment {
             for (File file : files) {
                 if (file.isFile() && file.getName().endsWith(".csv")) {
                     String fileName = file.getName();
-                    String fileDateTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(new Date(file.lastModified()));
+                    String fileDateTime = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+                            .format(new Date(file.lastModified()));
                     long fileSize = file.length(); // in bytes
                     fileDetailsList.add(new FileDetails(fileName, fileDateTime, formatSize(fileSize), file));
                 }
@@ -132,7 +160,7 @@ public class ProfileFragment extends Fragment {
             @Override
             public void onItemClick(File file) {
                 openAnotherFragment(file);
-                //openFileFragment();
+                // openFileFragment();
             }
 
             @Override
@@ -150,26 +178,27 @@ public class ProfileFragment extends Fragment {
         recyclerView.setAdapter(fileAdapter);
     }
 
-
     private void openFileFragment() {
         Log.d("Kichuna", "Seam click korse");
     }
 
     private void openAnotherFragment(File file) {
-        Log.d("Name",file.getName());
+        Log.d("Name", file.getName());
         dataVisualizationViewModel.setFileName(file.getName());
         DataVisualizationFragment dataVisualizationFragment = new DataVisualizationFragment();
 
         // Navigate to the FileVisualizationFragment
         requireActivity().getSupportFragmentManager()
                 .beginTransaction()
-                .replace(R.id.frame_layout_main_activity, dataVisualizationFragment) // R.id.fragment_container is the container in your activity layout
+                .replace(R.id.frame_layout_main_activity, dataVisualizationFragment) // R.id.fragment_container is the
+                                                                                     // container in your activity
+                                                                                     // layout
                 .addToBackStack(null) // This adds the transaction to the back stack
                 .commit();
     }
 
     private String formatSize(long size) {
-        String[] units = new String[]{"B", "KB", "MB", "GB", "TB"};
+        String[] units = new String[] { "B", "KB", "MB", "GB", "TB" };
         int unitIndex = 0;
 
         while (size > 1024 && unitIndex < units.length - 1) {

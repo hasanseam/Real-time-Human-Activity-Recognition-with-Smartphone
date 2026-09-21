@@ -75,6 +75,7 @@ public class DataAcquisitionFragment extends Fragment {
     private DataAcquisitionViewModel dataAcquisitionViewModel;
     private ActivityConfigureViewModel activityConfigureViewModel;
     private SensorConfigureViewModel sensorConfigureViewModel;
+    private java.util.Timer dataLoggingTimer;
    private Thread thread;
    private boolean plotData = true;
    private static final int PERMISSION_REQUEST_CODE = 1;
@@ -262,10 +263,9 @@ public class DataAcquisitionFragment extends Fragment {
                 createChart(sensor.getName());
                 SensorEventListener sensorEventListener1 = createSensorEventListener();
 
-                // Calculate the delay in microseconds for the desired frequency (100Hz)
-                int samplingPeriodUs = (1000000*60)/ 900; // 100 Hz = 100 samples per second = 1000000 microseconds
+                int samplingPeriodUs = sensorConfigureViewModel.getSelectedFrequencyUs();
 
-                boolean isRegistered = sensorManager.registerListener(sensorEventListener1, sensor,SensorManager.SENSOR_DELAY_NORMAL);
+                boolean isRegistered = sensorManager.registerListener(sensorEventListener1, sensor, samplingPeriodUs);
                 if(isRegistered){
                     sensorEventListeners.add(sensorEventListener1);
                     sensorConfigureViewModel.addRegisteredSensors(sensor);
@@ -276,6 +276,25 @@ public class DataAcquisitionFragment extends Fragment {
             }
             dataAcquisitionViewModel.setListening(true); //view model update as it register the listener
             startRecordingButton.setText("Stop");
+
+            long periodMs = sensorConfigureViewModel.getSelectedFrequencyUs() / 1000;
+            if (periodMs <= 0) periodMs = 5; // fallback for Max frequency
+            dataLoggingTimer = new java.util.Timer();
+            dataLoggingTimer.scheduleAtFixedRate(new java.util.TimerTask() {
+                @Override
+                public void run() {
+                    boolean allDataAvailable = true;
+                    for (Sensor sensor : sensorConfigureViewModel.getRegisteredSensors()) {
+                        if (!latestSensorReadings.containsKey(sensor)) {
+                            allDataAvailable = false;
+                            break;
+                        }
+                    }
+                    if (allDataAvailable) {
+                        writeSensorDataToFile();
+                    }
+                }
+            }, 0, periodMs);
         }else{
             Toast.makeText(getActivity(),"Configure your sensors and Activity",Toast.LENGTH_SHORT).show();
         }
@@ -284,6 +303,12 @@ public class DataAcquisitionFragment extends Fragment {
     private void stopListening()  {
         dataAcquisitionViewModel.setListening(false);
         startRecordingButton.setText("Start");
+        
+        if (dataLoggingTimer != null) {
+            dataLoggingTimer.cancel();
+            dataLoggingTimer = null;
+        }
+
         // unregister all listener
         for(SensorEventListener sensorEventListener1:sensorEventListeners){
             sensorManager.unregisterListener(sensorEventListener1);
@@ -300,17 +325,6 @@ public class DataAcquisitionFragment extends Fragment {
             @Override
             public void onSensorChanged(SensorEvent event) {
                 latestSensorReadings.put(event.sensor, event.values);
-                boolean allDataAvailable = true;
-                for (Sensor sensor : sensorConfigureViewModel.getRegisteredSensors()) {
-                    if (!latestSensorReadings.containsKey(sensor)) {
-                        allDataAvailable = false;
-                        break;
-                    }
-                }
-                // If data is available for all sensors, write to the file
-                if (allDataAvailable) {
-                    writeSensorDataToFile();
-                }
                 //old code
                plotDataForCharts(event,event.sensor);
                // writeSensorDataToFile(event);
@@ -327,7 +341,7 @@ public class DataAcquisitionFragment extends Fragment {
         try {
             StringBuilder sensorDataString = new StringBuilder();
             if(!isHeaderWritten){
-                sensorDataString.append("Timestamp,");
+                sensorDataString.append("Timestamp_ms,Subject_ID,Activity_Label,");
 
                 // Append headers for each registered sensor
                 for (Sensor sensor : sensorConfigureViewModel.getRegisteredSensors()) {
@@ -350,8 +364,13 @@ public class DataAcquisitionFragment extends Fragment {
                 isHeaderWritten = true;
             }
 
-            String timestamp = new SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(new Date());
-            sensorDataString.append(timestamp).append(",");
+            String timestampMs = String.valueOf(System.currentTimeMillis());
+            String subjectId = activityConfigureViewModel.getSubjectId();
+            String activityLabel = activityConfigureViewModel.getSelectedActivities();
+
+            sensorDataString.append(timestampMs).append(",");
+            sensorDataString.append(subjectId != null ? subjectId : "").append(",");
+            sensorDataString.append(activityLabel != null ? activityLabel : "").append(",");
 
             // Append data from all registered sensors
             for (Sensor sensor : sensorConfigureViewModel.getRegisteredSensors()) {

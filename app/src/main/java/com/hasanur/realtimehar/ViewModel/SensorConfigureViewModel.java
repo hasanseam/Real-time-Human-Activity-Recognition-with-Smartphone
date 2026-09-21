@@ -34,4 +34,14 @@ public class SensorConfigureViewModel extends ViewModel {
     public ArrayList<Sensor> getCheckedSensors() {
         return checkedSensors;
     }
+
+    private int selectedFrequencyUs = 20000; // default 50Hz (20000 us)
+
+    public void setSelectedFrequencyUs(int frequency) {
+        this.selectedFrequencyUs = frequency;
+    }
+
+    public int getSelectedFrequencyUs() {
+        return selectedFrequencyUs;
+    }
 }
